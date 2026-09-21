@@ -107,7 +107,7 @@
 
                     <!-- Footer Copyright -->
                     <div class="footer-copyright">
-                        <p class="text-white">Copyright &copy; <?php echo date("Y"); ?> Maanvika Grills &amp; Nets. All Rights Reserved. Designed by Harikrishna.</p>
+                        <p class="text-white">Copyright &copy; <?php echo date("Y"); ?> Maanvika Grills &amp; Nets. All Rights Reserved. Developed by GovindRaj.</p>
                     </div>
                 </div>
                 <!-- Footer Bottom End -->
