@@ -81,7 +81,7 @@
     "logo": "https://maanvikasafetynetschennai.com/images/logo-full.webp",
     "url": "https://maanvikasafetynetschennai.com/",
     "telephone": "+91-95814-31299",
-    "email": "maanvikasafetynetschennai@gmail.com",
+    "email": "maanvikasafetysolutions@gmail.com",
     "priceRange": "₹₹",
     "currenciesAccepted": "INR",
     "paymentAccepted": "Cash, UPI, Bank Transfer",
@@ -312,7 +312,7 @@
 
         <div class="text-center mt-5">
             <h4 class="mb-3">Need a Quote or Free Site Visit?</h4>
-            <p class="mb-3">📞 <strong>+91 95814 31299</strong> &nbsp; | &nbsp; 📧 <strong>maanvikasafetynetschennai@gmail.com</strong></p>
+            <p class="mb-3">📞 <strong>+91 95814 31299</strong> &nbsp; | &nbsp; 📧 <strong>maanvikasafetysolutions@gmail.com</strong></p>
             <a href="tel:+919581431299" class="btn px-4 py-2" style="background-color: #299b46; color: #fff; border: none;">Call Now</a>
         </div>
     </div>

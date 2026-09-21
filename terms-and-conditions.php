@@ -117,7 +117,7 @@
   <p>We may update these terms from time to time. Continued use of the website after changes implies acceptance of the new terms.</p>
 
   <h2>8. Contact Information</h2>
-  <p>If you have any questions regarding these Terms & Conditions, please contact us at: <a href="mailto:support@yourcompany.com">support@yourcompany.com</a>.</p>
+  <p>If you have any questions regarding these Terms & Conditions, please contact us at: <a href="mailto:maanvikasafetysolutions@gmail.com">maanvikasafetysolutions@gmail.com</a>.</p>
 </div>
 
     <!-- Page Single Post End -->

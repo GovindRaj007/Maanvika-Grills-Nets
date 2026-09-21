@@ -74,7 +74,7 @@
     "logo": "https://maanvikasafetynetschennai.com/images/logo-full.webp",
     "url": "https://maanvikasafetynetschennai.com/",
     "telephone": "+91-95814-31299",
-    "email": "maanvikasafetynetschennai@gmail.com",
+    "email": "maanvikasafetysolutions@gmail.com",
     "priceRange": "₹₹",
     "currenciesAccepted": "INR",
     "paymentAccepted": "Cash, UPI, Bank Transfer",

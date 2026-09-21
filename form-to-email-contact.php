@@ -18,9 +18,9 @@ ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
 // Where enquiries are delivered.
-const ENQUIRY_TO        = 'maanvikasafetynetschennai@gmail.com';
+const ENQUIRY_TO        = 'maanvikasafetysolutions@gmail.com';
 // Must stay on the site's own domain or the mail fails SPF and lands in spam.
-const ENQUIRY_FROM      = 'info@maanvikasafetynetschennai.com';
+const ENQUIRY_FROM      = 'maanvikasafetysolutions@gmail.com';
 const ENQUIRY_FROM_NAME = 'Maanvika Grills & Nets Website';
 
 function enquiry_fail($message)

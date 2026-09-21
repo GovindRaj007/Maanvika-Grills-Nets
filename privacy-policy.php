@@ -128,7 +128,7 @@
   <p>We reserve the right to update this Privacy Policy at any time. Changes will be posted on this page with an updated revision date.</p>
 
   <h2>Contact Us</h2>
-  <p>If you have any questions or concerns about this Privacy Policy, please contact us at: <a href="mailto:privacy@yourcompany.com">privacy@yourcompany.com</a>.</p>
+  <p>If you have any questions or concerns about this Privacy Policy, please contact us at: <a href="mailto:maanvikasafetysolutions@gmail.com">maanvikasafetysolutions@gmail.com</a>.</p>
 </div>
 
 

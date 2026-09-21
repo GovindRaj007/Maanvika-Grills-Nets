@@ -53,7 +53,7 @@
     "logo": "https://maanvikasafetynetschennai.com/images/logo-full.webp",
     "url": "https://maanvikasafetynetschennai.com/",
     "telephone": "+91-95814-31299",
-    "email": "maanvikasafetynetschennai@gmail.com",
+    "email": "maanvikasafetysolutions@gmail.com",
     "priceRange": "₹₹",
     "currenciesAccepted": "INR",
     "paymentAccepted": "Cash, UPI, Bank Transfer",
@@ -234,7 +234,7 @@
   </ul>
 
   <h2>Get in Touch Today</h2>
-  <p>Ready to make your home or workspace safer? Call us now at <strong>+91 95814 31299</strong> or email us at <strong>maanvikasafetynetschennai@gmail.com</strong> to book your free site inspection. Maanvika Grills &amp; Nets is your trusted partner for quality safety nets in Chennai. We promise satisfaction, safety, and service that lasts.</p>
+  <p>Ready to make your home or workspace safer? Call us now at <strong>+91 95814 31299</strong> or email us at <strong>maanvikasafetysolutions@gmail.com</strong> to book your free site inspection. Maanvika Grills &amp; Nets is your trusted partner for quality safety nets in Chennai. We promise satisfaction, safety, and service that lasts.</p>
   <!-- ✅ SEO Boost Content Ends Here -->
 </div>
 
