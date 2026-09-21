@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Nothing useful for crawlers on these
+Disallow: /form-to-email-contact.php
+Disallow: /thank-you.php
+
+Sitemap: https://maanvikasafetynetschennai.com/sitemap.xml

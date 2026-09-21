@@ -1,0 +1,14 @@
+# Keep local-only files out of the repository, and so off the live site.
+
+# PHP built-in server logs (php -S localhost:8001 router.php > server.log)
+server.log
+*.log
+
+# OS and editor clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.bak

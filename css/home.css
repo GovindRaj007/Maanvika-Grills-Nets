@@ -1,0 +1,1400 @@
+/* ==========================================================================
+   Home page layout
+   Loaded only by index.php.
+
+   Colours, fonts and spacing all come from the variables already defined in
+   custom.css (:root) so this page stays on the existing brand:
+     --primary-color   #002F47   navy
+     --accent-color    #299B46   green
+     --secondary-color #F5F7F2   off white
+     --text-color      #3D5A6A
+   Written mobile first: base rules are the phone layout, media queries add
+   the wider ones.
+   ========================================================================== */
+
+/* Jumping to an anchor shouldn't land flush against the viewport top. */
+#enquiry,
+#invisible-grills,
+#services,
+#about,
+#why-us,
+#areas,
+#faq {
+	scroll-margin-top: 24px;
+}
+
+/* --------------------------------------------------------------------------
+   Shared helpers
+   -------------------------------------------------------------------------- */
+
+.hm-explore {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	font-weight: 600;
+	font-size: 15px;
+	color: var(--primary-color);
+	text-decoration: none;
+	border-bottom: 1px solid transparent;
+	transition: color 0.25s ease, gap 0.25s ease, border-color 0.25s ease;
+}
+
+.hm-explore span {
+	transition: transform 0.25s ease;
+}
+
+.hm-explore:hover,
+.hm-explore:focus-visible {
+	color: var(--accent-color);
+	border-bottom-color: var(--accent-color);
+}
+
+.hm-explore:hover span {
+	transform: translateX(4px);
+}
+
+.hm-explore-lg {
+	font-size: 17px;
+	margin-top: 26px;
+}
+
+.btn-hm-outline {
+	background: transparent;
+	border: 2px solid var(--primary-color);
+	color: var(--primary-color);
+}
+
+.btn-hm-outline:hover {
+	background: var(--primary-color);
+	color: #fff;
+}
+
+.btn-hm-outline-light {
+	background: rgba(255, 255, 255, 0.12);
+	border: 2px solid rgba(255, 255, 255, 0.85);
+	color: #fff;
+	backdrop-filter: blur(3px);
+}
+
+.btn-hm-outline-light:hover {
+	background: #fff;
+	color: var(--primary-color);
+}
+
+.btn-hm-whatsapp {
+	background-color: #25D366;
+	border-color: #25D366;
+	color: #fff;
+}
+
+.btn-hm-whatsapp:hover {
+	color: #fff;
+}
+
+/* --------------------------------------------------------------------------
+   1. Header
+
+   On the home page the nav sits ON the hero photo. A single dark gradient
+   runs from the top of the page down into the image, so the header has no
+   edge of its own and reads as part of the hero. The same gradient is
+   reused for the fixed bar, so nothing changes colour on scroll.
+   -------------------------------------------------------------------------- */
+
+:root {
+	/* Card height is fixed so every slide is identical and the headline
+	   above it never shifts between slides. */
+	--hm-card-h: 286px;
+	--hm-slide-pad-b: 72px;
+	--hm-header-gradient: linear-gradient(180deg,
+		rgba(0, 28, 43, 0.92) 0%,
+		rgba(0, 32, 49, 0.78) 45%,
+		rgba(0, 38, 58, 0.45) 78%,
+		rgba(0, 47, 71, 0) 100%);
+	--hm-header-solid: linear-gradient(180deg,
+		rgba(0, 28, 43, 0.97) 0%,
+		rgba(0, 40, 61, 0.95) 100%);
+}
+
+.hm-home .site-header-wrap {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	z-index: 1050;
+	background: var(--hm-header-gradient);
+	/* Extra depth below the nav so the fade finishes inside the image. */
+	padding-bottom: 26px;
+	transition: background 0.3s ease;
+}
+
+
+/* ---- fixed state ---- */
+
+.site-header-wrap.is-stuck {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	z-index: 1050;
+	padding-bottom: 0;
+	background: var(--hm-header-solid);
+	box-shadow: 0 2px 18px rgba(0, 20, 32, 0.28);
+	animation: headerDrop 0.3s ease;
+}
+
+/* The announcement bar has already scrolled past, so only the compact nav
+   follows the reader down. */
+.site-header-wrap.is-stuck .topbar {
+	display: none;
+}
+
+.site-header-wrap.is-stuck .bar__inner {
+	min-height: 66px;
+	padding-top: 6px;
+	padding-bottom: 6px;
+}
+
+@keyframes headerDrop {
+	from { transform: translateY(-100%); }
+	to   { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.site-header-wrap.is-stuck {
+		animation: none;
+	}
+}
+
+/* --------------------------------------------------------------------------
+   2. Hero slider
+
+   Full viewport-height panels. svh tracks the *small* viewport height, so on
+   a phone the slide still fits when the browser's address bar is showing
+   rather than jumping as it hides.
+   -------------------------------------------------------------------------- */
+
+.hm-hero {
+	position: relative;
+	background-color: var(--primary-color);
+}
+
+.hm-slide {
+	position: relative;
+	isolation: isolate;
+	display: flex;
+	align-items: flex-end;
+	min-height: 100vh;
+	min-height: 100svh;
+	padding: 130px 0 var(--hm-slide-pad-b);
+	overflow: hidden;
+}
+
+/* The photo fills the whole panel. */
+.hm-slide-bg {
+	display: block;
+	position: absolute;
+	inset: 0;
+	z-index: -2;
+}
+
+.hm-slide-bg img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: center;
+}
+
+/* Only a light wash: the card supplies the contrast for the text, so the
+   photograph itself stays clearly visible. */
+.hm-slide::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	background: linear-gradient(180deg,
+		rgba(0, 47, 71, 0.30) 0%,
+		rgba(0, 47, 71, 0.10) 42%,
+		rgba(0, 47, 71, 0.55) 100%);
+}
+
+.hm-slide-container {
+	position: relative;
+	z-index: 2;
+}
+
+/* ---- compact glass card ----
+   Deliberately narrow and shrink-wrapped: it exists to give the text
+   contrast, not to cover the picture. */
+
+.hm-slide-card {
+	display: flex;
+	flex-direction: column;
+	max-width: 400px;
+	height: var(--hm-card-h);
+	padding: 18px 18px 20px;
+	border-radius: 16px;
+	overflow: hidden;
+	color: #fff;
+	background: rgba(4, 30, 46, 0.34);
+	border: 1px solid rgba(255, 255, 255, 0.22);
+	box-shadow: 0 14px 38px rgba(0, 16, 26, 0.28);
+	/* Light blur: enough to lift the text off the photo, not so much that
+	   the photo behind the card is lost. */
+	-webkit-backdrop-filter: blur(7px) saturate(1.2);
+	backdrop-filter: blur(7px) saturate(1.2);
+	text-shadow: 0 1px 6px rgba(0, 18, 30, 0.55);
+}
+
+/* Without backdrop-filter the card must carry its own opacity instead. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+	.hm-slide-card {
+		background: rgba(0, 30, 46, 0.72);
+	}
+}
+
+.hm-slide-eyebrow {
+	display: inline-block;
+	/* The card is a flex column, so its children stretch to full width by
+	   default. The badge should hug its text instead. */
+	align-self: flex-start;
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: #fff;
+	background: var(--accent-color);
+	border-radius: 40px;
+	padding: 6px 13px;
+	margin-bottom: 12px;
+}
+
+.hm-slide h1,
+.hm-slide h2 {
+	font-size: 25px;
+	line-height: 1.16;
+	letter-spacing: -0.02em;
+	color: #fff;
+	margin-bottom: 10px;
+}
+
+.hm-slide-sub {
+	font-size: 14px;
+	line-height: 1.55;
+	color: rgba(255, 255, 255, 0.92);
+	margin-bottom: 12px;
+}
+
+.hm-slide-areas {
+	font-size: 12px;
+	letter-spacing: 0.02em;
+	color: rgba(255, 255, 255, 0.82);
+	padding-top: 11px;
+	margin-bottom: 16px;
+	border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.hm-slide-link {
+	margin-top: auto;
+	display: block;
+	width: 100%;
+	min-height: 46px;
+	line-height: 42px;
+	padding-top: 0;
+	padding-bottom: 0;
+	text-align: center;
+	font-size: 14px;
+}
+
+/* One headline for the whole hero, parked just above the cards. It sits
+   outside the slider so it neither repeats per slide nor moves between
+   them; the offset is card height + slide padding + a gap. */
+.hm-hero-heading {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: calc(var(--hm-card-h) + var(--hm-slide-pad-b) + 62px);
+	z-index: 3;
+	pointer-events: none;
+}
+
+.hm-hero-heading h1 {
+	max-width: 620px;
+	margin: 0;
+	font-size: 30px;
+	line-height: 1.14;
+	letter-spacing: -0.02em;
+	color: #fff;
+	text-shadow: 0 2px 16px rgba(0, 18, 30, 0.7);
+}
+
+/* Secondary CTA lives outside the card, on the photo itself. */
+.hm-slide-cta {
+	margin-top: 14px;
+}
+
+.hm-slide-cta .btn-default {
+	display: inline-block;
+	min-height: 46px;
+	line-height: 42px;
+	padding-top: 0;
+	padding-bottom: 0;
+	font-size: 14px;
+}
+
+.hm-hero-pagination {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 20px;
+	z-index: 10;
+	display: flex;
+	justify-content: center;
+	gap: 8px;
+}
+
+.hm-hero-pagination .swiper-pagination-bullet {
+	width: 9px;
+	height: 9px;
+	background: #fff;
+	opacity: 0.5;
+	margin: 0 !important;
+	transition: width 0.3s ease, opacity 0.3s ease;
+}
+
+.hm-hero-pagination .swiper-pagination-bullet-active {
+	width: 28px;
+	border-radius: 6px;
+	opacity: 1;
+	background: var(--accent-color);
+}
+
+/* --------------------------------------------------------------------------
+   3. Invisible grills spotlight
+   -------------------------------------------------------------------------- */
+
+.hm-spotlight {
+	padding: 54px 0;
+	background:
+		linear-gradient(180deg, var(--secondary-color) 0%, #fff 100%);
+	overflow: hidden;
+}
+
+.hm-spotlight-media {
+	position: relative;
+	border-radius: 16px;
+	overflow: hidden;
+	margin-bottom: 28px;
+	line-height: 0;
+	box-shadow: 0 18px 40px rgba(0, 47, 71, 0.16);
+}
+
+.hm-spotlight-media img {
+	width: 100%;
+	height: auto;
+	aspect-ratio: 4 / 3;
+	object-fit: cover;
+}
+
+.hm-spotlight-float {
+	position: absolute;
+	left: 14px;
+	bottom: 14px;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	background: rgba(255, 255, 255, 0.94);
+	color: var(--primary-color);
+	font-size: 13px;
+	font-weight: 700;
+	line-height: 1;
+	padding: 10px 15px;
+	border-radius: 40px;
+	box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
+}
+
+.hm-spotlight-float i {
+	color: var(--accent-color);
+	font-size: 14px;
+}
+
+.hm-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	background: rgba(41, 155, 70, 0.12);
+	border: 1px solid rgba(41, 155, 70, 0.35);
+	color: #1d7a35;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	padding: 8px 16px;
+	border-radius: 40px;
+	margin-bottom: 16px;
+}
+
+.hm-badge i {
+	font-size: 12px;
+}
+
+.hm-spotlight-body h2 {
+	font-size: 26px;
+	line-height: 1.18;
+	letter-spacing: -0.02em;
+	margin-bottom: 8px;
+}
+
+.hm-spotlight-tagline {
+	font-size: 17px;
+	font-weight: 600;
+	font-style: italic;
+	color: var(--accent-color);
+	margin-bottom: 18px;
+}
+
+.hm-spotlight-body > p {
+	font-size: 15px;
+	line-height: 1.68;
+	margin-bottom: 16px;
+}
+
+.hm-spotlight-features {
+	list-style: none;
+	padding: 0;
+	margin: 26px 0;
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 12px;
+}
+
+.hm-spotlight-features li {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	background: #fff;
+	border: 1px solid var(--divider-color);
+	border-radius: 10px;
+	padding: 14px;
+	transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.hm-spotlight-features li:hover {
+	transform: translateY(-3px);
+	border-color: transparent;
+	box-shadow: 0 10px 24px rgba(0, 47, 71, 0.12);
+}
+
+.hm-spotlight-features li i {
+	flex: 0 0 auto;
+	width: 34px;
+	height: 34px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 9px;
+	background: rgba(41, 155, 70, 0.12);
+	color: var(--accent-color);
+	font-size: 14px;
+}
+
+.hm-spotlight-features li span {
+	display: block;
+	font-size: 13px;
+	line-height: 1.45;
+	color: var(--text-color);
+}
+
+.hm-spotlight-features li strong {
+	display: block;
+	font-size: 15px;
+	color: var(--primary-color);
+	margin-bottom: 2px;
+}
+
+.hm-spotlight-btns {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.hm-spotlight-btns .btn-default {
+	min-height: 52px;
+	line-height: 48px;
+	padding-top: 0;
+	padding-bottom: 0;
+	text-align: center;
+}
+
+.hm-spotlight-btns .btn-default:not(.btn-noarrow) {
+	margin-right: 50px;
+}
+
+/* --------------------------------------------------------------------------
+   4. Services carousel
+   -------------------------------------------------------------------------- */
+
+.hm-services {
+	padding: 54px 0;
+	background: var(--white-color);
+	overflow: hidden;
+}
+
+.hm-services .section-title,
+.hm-work .section-title,
+.hm-process .section-title,
+.hm-why .section-title,
+.hm-areas .section-title,
+.hm-faq .section-title {
+	margin-bottom: 32px;
+}
+
+.hm-services .section-title p,
+.hm-areas .section-title p {
+	max-width: 620px;
+	margin: 12px auto 0;
+}
+
+/* The track is padded rather than the page, so the peeking next card sits
+   close to the screen edge. The swiper clips its own overflow: a fractional
+   slidesPerView already reveals part of the next card inside that clip, and
+   letting it spill instead made the whole page scroll sideways. */
+.hm-services-slider {
+	padding: 0 16px 8px;
+	max-width: 100%;
+	overflow: hidden;
+}
+
+.hm-services-slider .swiper {
+	overflow: hidden;
+}
+
+.hm-services-slider .swiper-slide {
+	height: auto;
+	display: flex;
+}
+
+.hm-service-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	background: var(--white-color);
+	border: 1px solid var(--divider-color);
+	border-radius: 14px;
+	overflow: hidden;
+	transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.hm-service-card:hover {
+	transform: translateY(-4px);
+	border-color: transparent;
+	box-shadow: 0 16px 36px rgba(0, 47, 71, 0.15);
+}
+
+.hm-service-card-featured {
+	border-color: var(--accent-color);
+}
+
+/* Image sits at the top of the card at a fixed ratio, so every card in the
+   row lines up no matter how tall the copy is. */
+.hm-service-thumb {
+	display: block;
+	position: relative;
+	line-height: 0;
+	background: var(--secondary-color);
+	overflow: hidden;
+}
+
+.hm-service-thumb img {
+	width: 100%;
+	height: 190px;
+	object-fit: cover;
+	object-position: center;
+	transition: transform 0.5s ease;
+}
+
+.hm-service-card:hover .hm-service-thumb img {
+	transform: scale(1.06);
+}
+
+.hm-service-tag {
+	position: absolute;
+	top: 12px;
+	left: 12px;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	line-height: 1;
+	color: #fff;
+	background: var(--accent-color);
+	border-radius: 30px;
+	padding: 7px 13px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.hm-service-body {
+	display: flex;
+	flex-direction: column;
+	flex-grow: 1;
+	padding: 20px 18px 22px;
+}
+
+.hm-service-body h3 {
+	font-size: 19px;
+	line-height: 1.25;
+	margin-bottom: 9px;
+}
+
+.hm-service-body h3 a {
+	color: var(--primary-color);
+	text-decoration: none;
+}
+
+.hm-service-body h3 a:hover {
+	color: var(--accent-color);
+}
+
+.hm-service-body > p {
+	font-size: 14px;
+	line-height: 1.6;
+	margin-bottom: 14px;
+}
+
+.hm-service-body ul {
+	list-style: none;
+	padding: 0;
+	margin: 0 0 18px;
+	/* Grows so the Explore link sits on the card floor. */
+	flex-grow: 1;
+}
+
+.hm-service-body ul li {
+	position: relative;
+	padding-left: 22px;
+	font-size: 13px;
+	line-height: 1.5;
+	margin-bottom: 8px;
+}
+
+.hm-service-body ul li::before {
+	content: "\f00c";
+	font-family: "Font Awesome 6 Free";
+	font-weight: 900;
+	position: absolute;
+	left: 0;
+	top: 1px;
+	font-size: 10px;
+	color: var(--accent-color);
+}
+
+.hm-services-pagination {
+	display: flex;
+	justify-content: center;
+	gap: 7px;
+	margin-top: 24px;
+}
+
+.hm-services-pagination .swiper-pagination-bullet {
+	width: 8px;
+	height: 8px;
+	background: var(--primary-color);
+	opacity: 0.25;
+	margin: 0 !important;
+	transition: width 0.3s ease, opacity 0.3s ease;
+}
+
+.hm-services-pagination .swiper-pagination-bullet-active {
+	width: 26px;
+	border-radius: 5px;
+	opacity: 1;
+	background: var(--accent-color);
+}
+
+.hm-quick-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-top: 26px;
+}
+
+.hm-quick-actions .btn-default {
+	width: 100%;
+	text-align: center;
+	min-height: 52px;
+	line-height: 48px;
+	padding-top: 0;
+	padding-bottom: 0;
+}
+
+/* --------------------------------------------------------------------------
+   5. Trust stats
+   -------------------------------------------------------------------------- */
+
+.hm-stats {
+	background: var(--primary-color);
+	padding: 44px 0;
+	color: #fff;
+}
+
+.hm-stats-lead {
+	text-align: center;
+	font-size: 17px;
+	line-height: 1.55;
+	color: rgba(255, 255, 255, 0.9);
+	max-width: 640px;
+	margin: 0 auto 30px;
+}
+
+.hm-stats-row {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 22px 14px;
+}
+
+.hm-stat {
+	text-align: center;
+}
+
+.hm-stat-value {
+	display: block;
+	font-size: 34px;
+	font-weight: 700;
+	line-height: 1;
+	color: #fff;
+	margin-bottom: 8px;
+}
+
+.hm-stat-label {
+	display: block;
+	font-size: 13px;
+	line-height: 1.45;
+	color: rgba(255, 255, 255, 0.75);
+}
+
+/* --------------------------------------------------------------------------
+   6. Who we are
+   -------------------------------------------------------------------------- */
+
+.hm-about {
+	padding: 54px 0;
+	background: var(--secondary-color);
+}
+
+.hm-about .section-title {
+	margin-bottom: 18px;
+}
+
+.hm-about p {
+	font-size: 15px;
+	line-height: 1.68;
+	margin-bottom: 16px;
+}
+
+.hm-about-btns {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin: 22px 0 34px;
+}
+
+.hm-about-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.hm-about-list li {
+	display: flex;
+	gap: 14px;
+	background: var(--white-color);
+	border-radius: 10px;
+	padding: 18px;
+	margin-bottom: 12px;
+}
+
+.hm-about-list li i {
+	flex: 0 0 auto;
+	font-size: 18px;
+	line-height: 1.4;
+	color: var(--accent-color);
+}
+
+.hm-about-list li h3 {
+	font-size: 16px;
+	margin-bottom: 5px;
+}
+
+.hm-about-list li p {
+	font-size: 14px;
+	line-height: 1.55;
+	margin-bottom: 0;
+}
+
+/* --------------------------------------------------------------------------
+   7. Recent work
+   -------------------------------------------------------------------------- */
+
+.hm-work {
+	padding: 54px 0;
+	background: var(--white-color);
+}
+
+.hm-work-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 14px;
+}
+
+.hm-work-item {
+	margin: 0;
+	border-radius: 10px;
+	overflow: hidden;
+	line-height: 0;
+	background: var(--secondary-color);
+}
+
+.hm-work-item img {
+	width: 100%;
+	height: auto;
+	aspect-ratio: 1 / 1;
+	object-fit: cover;
+	display: block;
+	transition: transform 0.45s ease;
+}
+
+.hm-work-item:hover img {
+	transform: scale(1.06);
+}
+
+/* --------------------------------------------------------------------------
+   8. Process
+   -------------------------------------------------------------------------- */
+
+.hm-process {
+	padding: 54px 0;
+	background: var(--secondary-color);
+}
+
+.hm-process-steps {
+	display: grid;
+	gap: 18px;
+}
+
+.hm-step {
+	position: relative;
+	background: var(--white-color);
+	border-radius: 12px;
+	padding: 26px 22px 24px;
+}
+
+.hm-step-num {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 42px;
+	height: 42px;
+	border-radius: 50%;
+	background: var(--primary-color);
+	color: #fff;
+	font-size: 18px;
+	font-weight: 700;
+	margin-bottom: 14px;
+}
+
+.hm-step h3 {
+	font-size: 19px;
+	margin-bottom: 9px;
+}
+
+.hm-step p {
+	font-size: 15px;
+	line-height: 1.6;
+	margin-bottom: 0;
+}
+
+/* --------------------------------------------------------------------------
+   9. Why choose us
+   -------------------------------------------------------------------------- */
+
+.hm-why {
+	padding: 54px 0;
+	background: var(--white-color);
+}
+
+.hm-why-grid {
+	display: grid;
+	gap: 22px;
+}
+
+.hm-why-item {
+	border-left: 3px solid var(--accent-color);
+	padding-left: 18px;
+}
+
+.hm-why-item h3 {
+	font-size: 18px;
+	margin-bottom: 8px;
+}
+
+.hm-why-item p {
+	font-size: 15px;
+	line-height: 1.62;
+	margin-bottom: 0;
+}
+
+/* --------------------------------------------------------------------------
+   10. Areas we cover
+   -------------------------------------------------------------------------- */
+
+.hm-areas {
+	padding: 54px 0;
+	background: var(--secondary-color);
+}
+
+.hm-area-tabs {
+	display: flex;
+	flex-wrap: nowrap;
+	gap: 9px;
+	overflow-x: auto;
+	padding: 0 0 6px;
+	margin: 0 0 24px;
+	list-style: none;
+	border: 0;
+	scrollbar-width: none;
+	-webkit-overflow-scrolling: touch;
+}
+
+.hm-area-tabs::-webkit-scrollbar {
+	display: none;
+}
+
+.hm-area-tabs li {
+	flex: 0 0 auto;
+}
+
+.hm-area-tab {
+	white-space: nowrap;
+	background: var(--white-color);
+	border: 1px solid var(--divider-color);
+	border-radius: 40px;
+	color: var(--text-color);
+	font-size: 14px;
+	font-weight: 600;
+	padding: 10px 18px;
+	cursor: pointer;
+	transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+.hm-area-tab:hover {
+	border-color: var(--accent-color);
+	color: var(--primary-color);
+}
+
+.hm-area-tab.active {
+	background: var(--primary-color);
+	border-color: var(--primary-color);
+	color: #fff;
+}
+
+.hm-area-content {
+	background: var(--white-color);
+	border-radius: 12px;
+	padding: 24px 20px;
+}
+
+.hm-area-note {
+	font-size: 15px;
+	line-height: 1.6;
+	margin-bottom: 16px;
+}
+
+.hm-area-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 9px;
+}
+
+.hm-area-list li {
+	background: var(--secondary-color);
+	border: 1px solid var(--divider-color);
+	border-radius: 30px;
+	padding: 8px 15px;
+	font-size: 14px;
+	line-height: 1.3;
+}
+
+/* --------------------------------------------------------------------------
+   11. FAQ
+   -------------------------------------------------------------------------- */
+
+.hm-faq {
+	padding: 54px 0;
+	background: var(--white-color);
+}
+
+.hm-accordion {
+	max-width: 820px;
+	margin: 0 auto;
+}
+
+.hm-accordion .accordion-item {
+	background: var(--white-color);
+	border: 1px solid var(--divider-color);
+	border-radius: 10px;
+	margin-bottom: 12px;
+	overflow: hidden;
+}
+
+.hm-accordion .accordion-header {
+	margin: 0;
+}
+
+.hm-accordion .accordion-button {
+	font-family: var(--default-font);
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.45;
+	color: var(--primary-color);
+	background: var(--white-color);
+	padding: 18px 20px;
+	box-shadow: none;
+}
+
+.hm-accordion .accordion-button:not(.collapsed) {
+	background: rgba(41, 155, 70, 0.07);
+	color: var(--primary-color);
+	box-shadow: none;
+}
+
+.hm-accordion .accordion-button:focus {
+	box-shadow: none;
+	border-color: transparent;
+}
+
+.hm-accordion .accordion-button::after {
+	width: 16px;
+	height: 16px;
+	background-size: 16px;
+}
+
+.hm-accordion .accordion-body {
+	font-size: 15px;
+	line-height: 1.68;
+	color: var(--text-color);
+	padding: 4px 20px 20px;
+}
+
+.hm-faq-more {
+	margin: 26px 0 0;
+}
+
+/* --------------------------------------------------------------------------
+   12. Final CTA
+   -------------------------------------------------------------------------- */
+
+.hm-cta {
+	padding: 0 0 54px;
+	background: var(--white-color);
+}
+
+.hm-cta-box {
+	background: var(--primary-color);
+	border-radius: 16px;
+	padding: 40px 24px;
+	text-align: center;
+	color: #fff;
+}
+
+.hm-cta-box h2 {
+	font-size: 26px;
+	line-height: 1.18;
+	color: #fff;
+	margin-bottom: 12px;
+}
+
+.hm-cta-box p {
+	font-size: 16px;
+	line-height: 1.6;
+	color: rgba(255, 255, 255, 0.85);
+	max-width: 520px;
+	margin: 0 auto 26px;
+}
+
+.hm-cta-btns {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.hm-cta-btns .btn-default {
+	width: 100%;
+	text-align: center;
+	min-height: 52px;
+	line-height: 48px;
+	padding-top: 0;
+	padding-bottom: 0;
+}
+
+/* ==========================================================================
+   Tablet
+   ========================================================================== */
+
+@media only screen and (min-width: 576px) {
+
+	.hm-slide h1,
+	.hm-slide h2 {
+		font-size: 29px;
+	}
+
+	.hm-slide-card {
+		max-width: 430px;
+	}
+
+	.hm-hero-heading h1 {
+		font-size: 36px;
+	}
+
+	.hm-slide-link {
+		display: inline-block;
+		width: auto;
+		padding-left: 24px;
+		padding-right: 24px;
+	}
+
+	.hm-spotlight-btns,
+	.hm-quick-actions,
+	.hm-cta-btns {
+		flex-direction: row;
+		flex-wrap: wrap;
+	}
+
+	.hm-spotlight-btns .btn-default,
+	.hm-quick-actions .btn-default,
+	.hm-cta-btns .btn-default {
+		width: auto;
+		min-width: 200px;
+	}
+
+
+	.hm-quick-actions,
+	.hm-cta-btns {
+		justify-content: center;
+	}
+
+	.hm-spotlight-features {
+		grid-template-columns: repeat(2, 1fr);
+	}
+
+	.hm-work-grid {
+		grid-template-columns: repeat(3, 1fr);
+	}
+
+	.hm-cta-box {
+		padding: 52px 40px;
+	}
+
+	.hm-cta-box h2 {
+		font-size: 32px;
+	}
+}
+
+/* ==========================================================================
+   Desktop
+   ========================================================================== */
+
+@media only screen and (min-width: 992px) {
+
+	.hm-slide {
+		padding: 170px 0 var(--hm-slide-pad-b);
+		align-items: flex-end;
+	}
+
+	/* The headline is a sibling of the slides, so it needs the same values. */
+	.hm-hero {
+		--hm-card-h: 306px;
+		--hm-slide-pad-b: 96px;
+	}
+
+	.hm-slide-card {
+		max-width: 450px;
+		padding: 24px 24px 26px;
+		border-radius: 20px;
+	}
+
+	.hm-hero-heading h1 {
+		font-size: 46px;
+	}
+
+	.hm-slide h1,
+	.hm-slide h2 {
+		font-size: 34px;
+	}
+
+	.hm-slide-sub {
+		font-size: 15px;
+	}
+
+	.hm-slide-areas {
+		font-size: 13px;
+	}
+
+	.hm-slide-link {
+		display: inline-block;
+		width: auto;
+		padding-left: 24px;
+		padding-right: 24px;
+	}
+
+	.hm-slide-cta {
+		margin-top: 16px;
+	}
+
+	.hm-hero-pagination {
+		bottom: 34px;
+	}
+
+	.hm-spotlight,
+	.hm-services,
+	.hm-about,
+	.hm-work,
+	.hm-process,
+	.hm-why,
+	.hm-areas,
+	.hm-faq {
+		padding: 90px 0;
+	}
+
+	.hm-stats {
+		padding: 64px 0;
+	}
+
+	.hm-stats-row {
+		grid-template-columns: repeat(4, 1fr);
+		gap: 24px;
+	}
+
+	.hm-stat-value {
+		font-size: 44px;
+	}
+
+	.hm-stat-label {
+		font-size: 14px;
+	}
+
+	.hm-spotlight-media {
+		margin-bottom: 0;
+		margin-right: 34px;
+	}
+
+	.hm-spotlight-media img {
+		aspect-ratio: 3 / 4;
+	}
+
+	.hm-spotlight-body h2 {
+		font-size: 38px;
+	}
+
+	.hm-spotlight-tagline {
+		font-size: 19px;
+	}
+
+	.hm-services-slider {
+		padding-left: 24px;
+		padding-right: 24px;
+	}
+
+	.hm-service-thumb img {
+		height: 210px;
+	}
+
+	.hm-about-list {
+		padding-left: 24px;
+	}
+
+	.hm-work-grid {
+		grid-template-columns: repeat(4, 1fr);
+		gap: 18px;
+	}
+
+	.hm-why-grid {
+		grid-template-columns: repeat(4, 1fr);
+	}
+
+	.hm-process-steps {
+		grid-template-columns: repeat(3, 1fr);
+		gap: 26px;
+	}
+
+	.hm-area-tabs {
+		flex-wrap: wrap;
+		justify-content: center;
+		overflow: visible;
+	}
+
+	.hm-area-content {
+		padding: 32px 30px;
+	}
+
+	.hm-cta {
+		padding: 0 0 90px;
+	}
+
+	.hm-cta-box h2 {
+		font-size: 38px;
+	}
+}
+
+
+
+/* ==========================================================================
+   Horizontal overflow containment
+
+   The hero track and the services track are both far wider than the
+   viewport by design, so each section clips its own content. html/body
+   in custom.css is the final backstop.
+   ========================================================================== */
+
+.hm-hero,
+.hm-services,
+.hm-spotlight,
+.hm-work,
+.hm-areas {
+	max-width: 100%;
+	overflow-x: clip;
+}
+
+/* Carousel cards: stop the browser's own image drag from fighting the swipe
+   on desktop (dragging a photo would otherwise lift a ghost image). */
+.hm-service-thumb,
+.hm-service-thumb img {
+	-webkit-user-drag: none;
+	user-select: none;
+}
+
+/* Hero card fit guarantee.
+   The card has a fixed height, so each part gets a hard line limit. Worst
+   case: badge 36 + title 2 lines 68 + description 2 lines 55 + applications
+   1 line 40 + button 46 + padding 38 = 283px, inside the 286px card. The
+   copy is written to fit these limits; the clamps only matter on the
+   narrowest phones, where they trim text instead of pushing the button out. */
+.hm-slide h1,
+.hm-slide h2,
+.hm-slide-sub {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	overflow: hidden;
+}
+
+.hm-slide-areas {
+	padding-top: 9px;
+	margin-bottom: 12px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
