@@ -2,13 +2,44 @@
 /**
  * Shared enquiry form.
  *
- * Set $enquiryFormSource before including to label where the lead came from,
- * e.g. <?php $enquiryFormSource = 'Contact Page'; include 'enquiry-form.php'; ?>
+ * The page including this must pull in enquiry-state.php before any output,
+ * and may set $enquiryFormSource to label where the lead came from:
+ *
+ *     <?php include 'enquiry-state.php'; ?><!DOCTYPE html>
+ *     ...
+ *     <?php $enquiryFormSource = 'Contact Page'; include 'enquiry-form.php'; ?>
  */
 $enquiryFormSource = $enquiryFormSource ?? 'Website';
-$enquiryError = ($_GET['enquiry'] ?? '') === 'error'
-    ? htmlspecialchars($_GET['reason'] ?? 'Something went wrong. Please try again.', ENT_QUOTES, 'UTF-8')
-    : '';
+
+// Set by enquiry-state.php after a rejected submission. The fallbacks keep
+// this file working even if a page forgets to include it.
+$enquiryError = $enquiryError ?? '';
+$enquiryOld   = $enquiryOld ?? [];
+
+if (!function_exists('enquiry_old')) {
+    function enquiry_old($field, $old)
+    {
+        return htmlspecialchars((string) ($old[$field] ?? ''), ENT_QUOTES, 'UTF-8');
+    }
+}
+
+// Which page to come back to if the submission is rejected.
+$enquiryReturn = basename($_SERVER['SCRIPT_NAME'] ?? 'contact.php');
+$enquiryService = (string) ($enquiryOld['services'] ?? '');
+$enquiryServices = [
+    'Balcony Safety Nets',
+    'Pigeon Safety Nets',
+    'Anti Bird Nets',
+    'Bird Nets',
+    'Children Safety Nets',
+    'Cricket Practice Nets',
+    'All Sports Nets',
+    'Shade Nets',
+    'Balcony Cloth Hanger',
+    'Invisible Grill For Balcony',
+    'Bird Spikes',
+    'Something else',
+];
 ?>
 <section class="enquiry-section" id="enquiry">
   <div class="container">
@@ -22,11 +53,12 @@ $enquiryError = ($_GET['enquiry'] ?? '') === 'error'
         </div>
 
         <?php if ($enquiryError !== ''): ?>
-          <div class="enquiry-alert" role="alert"><?php echo $enquiryError; ?></div>
+          <div class="enquiry-alert" id="enquiry-alert" role="alert" tabindex="-1"><?php echo htmlspecialchars($enquiryError, ENT_QUOTES, 'UTF-8'); ?></div>
         <?php endif; ?>
 
         <form class="enquiry-form" method="POST" action="form-to-email-contact.php">
           <input type="hidden" name="source" value="<?php echo htmlspecialchars($enquiryFormSource, ENT_QUOTES, 'UTF-8'); ?>">
+          <input type="hidden" name="return" value="<?php echo htmlspecialchars($enquiryReturn, ENT_QUOTES, 'UTF-8'); ?>">
 
           <!-- Honeypot: hidden from people, filled in by bots. -->
           <div class="enquiry-hp" aria-hidden="true">
@@ -38,21 +70,29 @@ $enquiryError = ($_GET['enquiry'] ?? '') === 'error'
             <div class="col-md-6">
               <div class="enquiry-field">
                 <label for="enq-name">Your name <span aria-hidden="true">*</span></label>
-                <input type="text" id="enq-name" name="name" autocomplete="name" required placeholder="e.g. Priya R">
+                <input type="text" id="enq-name" name="name" autocomplete="name" maxlength="100" required
+                       placeholder="e.g. Priya R"
+                       value="<?php echo enquiry_old('name', $enquiryOld); ?>">
               </div>
             </div>
             <div class="col-md-6">
               <div class="enquiry-field">
+                <?php /* The pattern allows the spaces, dashes and +91 people paste
+                          from their contacts; the handler reduces it to 10 digits. */ ?>
                 <label for="enq-phone">Mobile number <span aria-hidden="true">*</span></label>
-                <input type="tel" id="enq-phone" name="phone" inputmode="numeric" autocomplete="tel"
-                    pattern="[0-9]{10}" required
-                     placeholder="10-digit mobile number">
+                <input type="tel" id="enq-phone" name="phone" inputmode="tel" autocomplete="tel"
+                       pattern="[0-9+\-\s()]{10,18}" maxlength="18" required
+                       title="Please enter your 10-digit mobile number"
+                       placeholder="10-digit mobile number"
+                       value="<?php echo enquiry_old('phone', $enquiryOld); ?>">
               </div>
             </div>
             <div class="col-md-6">
               <div class="enquiry-field">
                 <label for="enq-email">Email <span class="enquiry-optional">(optional)</span></label>
-                <input type="email" id="enq-email" name="email" autocomplete="email" placeholder="you@example.com">
+                <input type="email" id="enq-email" name="email" autocomplete="email" maxlength="150"
+                       placeholder="you@example.com"
+                       value="<?php echo enquiry_old('email', $enquiryOld); ?>">
               </div>
             </div>
             <div class="col-md-6">
@@ -60,25 +100,16 @@ $enquiryError = ($_GET['enquiry'] ?? '') === 'error'
                 <label for="enq-service">Service needed</label>
                 <select id="enq-service" name="services">
                   <option value="">Select a service</option>
-                  <option>Balcony Safety Nets</option>
-                  <option>Pigeon Safety Nets</option>
-                  <option>Anti Bird Nets</option>
-                  <option>Bird Nets</option>
-                  <option>Children Safety Nets</option>
-                  <option>Cricket Practice Nets</option>
-                  <option>All Sports Nets</option>
-                  <option>Shade Nets</option>
-                  <option>Balcony Cloth Hanger</option>
-                  <option>Invisible Grill For Balcony</option>
-                  <option>Bird Spikes</option>
-                  <option>Something else</option>
+                  <?php foreach ($enquiryServices as $service): ?>
+                    <option<?php echo $service === $enquiryService ? ' selected' : ''; ?>><?php echo htmlspecialchars($service, ENT_QUOTES, 'UTF-8'); ?></option>
+                  <?php endforeach; ?>
                 </select>
               </div>
             </div>
             <div class="col-12">
               <div class="enquiry-field">
                 <label for="enq-message">Message <span class="enquiry-optional">(optional)</span></label>
-                <textarea id="enq-message" name="message" rows="4" placeholder="Area to be covered, floor number, preferred visit time..."></textarea>
+                <textarea id="enq-message" name="message" rows="4" maxlength="2000" placeholder="Area to be covered, floor number, preferred visit time..."><?php echo enquiry_old('message', $enquiryOld); ?></textarea>
               </div>
             </div>
             <div class="col-12">

@@ -46,7 +46,7 @@ ErrorDocument 404 /404.php
 # Page fragments pulled in by include; on their own they render a broken
 # fragment or nothing at all. PHP includes read them from disk, so denying
 # web access does not affect the pages that use them.
-<FilesMatch "^(header|footer|side-bar|enquiry-form|gallery-data|service-photos|brand)\.php$">
+<FilesMatch "^(header|footer|side-bar|enquiry-form|enquiry-state|gallery-data|service-photos|brand)\.php$">
     Require all denied
 </FilesMatch>
 

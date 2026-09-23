@@ -496,9 +496,50 @@
 		});
 	});
 
-	/* The enquiry form posts directly to form-to-email-contact.php,
-	   which validates server side and redirects to thank-you.php.
-	   No client-side AJAX handler is needed. */
+	/* Enquiry form.
+
+	   It posts straight to form-to-email-contact.php, which validates server
+	   side and redirects to thank-you.php, so there is no AJAX handler here.
+	   Two small things are worth doing on the page itself:
+
+	   1. Lock the button once a valid form is on its way. On a slow mobile
+	      connection an impatient second tap sends the same lead twice.
+	   2. Put the cursor on the error message after a rejected submission, so
+	      a screen reader announces it and everyone else lands beside it. */
+	(function () {
+		var form = document.querySelector('.enquiry-form');
+		if (form) {
+			form.addEventListener('submit', function () {
+				/* checkValidity() is false when the browser is about to block
+				   the submit and show its own bubble; the button must stay
+				   usable in that case. */
+				if (form.checkValidity && !form.checkValidity()) { return; }
+
+				var button = form.querySelector('.enquiry-submit');
+				if (!button) { return; }
+
+				/* Disabling in the submit handler would drop the button's own
+				   name/value from the POST, so wait a tick. */
+				window.setTimeout(function () {
+					button.disabled = true;
+					button.textContent = 'Sending...';
+				}, 0);
+			});
+		}
+
+		/* Coming back with the Back button restores the page from the cache
+		   exactly as it was left, dead "Sending..." button and all. */
+		window.addEventListener('pageshow', function () {
+			var button = document.querySelector('.enquiry-submit');
+			if (button && button.disabled) {
+				button.disabled = false;
+				button.textContent = 'Send enquiry';
+			}
+		});
+
+		var alertBox = document.getElementById('enquiry-alert');
+		if (alertBox) { alertBox.focus(); }
+	})();
 
 
 	/* Our Project (filtering) Start */

@@ -1,3 +1,4 @@
+<?php include 'enquiry-state.php'; ?>
 <!DOCTYPE html>
 <html lang="en-IN">
 
