@@ -6,9 +6,7 @@
  * the lead to the office inbox with PHP's built-in mail(), then redirects to
  * thank-you.php.
  *
- * Mail is sent From the domain address so it passes SPF/DMARC on the hosting
- * account, and delivered To the Gmail inbox the business actually monitors.
- * No SMTP password is stored anywhere.
+ * Mail is sent from the site domain and delivered to the business inbox.
  */
 
 // Never print PHP notices into the response: any output before the redirect
@@ -19,7 +17,6 @@ error_reporting(E_ALL);
 
 // Where enquiries are delivered.
 const ENQUIRY_TO        = 'maanvikasafetysolutions@gmail.com';
-// Must stay on the site's own domain or the mail fails SPF and lands in spam.
 const ENQUIRY_FROM      = 'maanvikasafetysolutions@gmail.com';
 const ENQUIRY_FROM_NAME = 'Maanvika Grills & Nets Website';
 
@@ -76,7 +73,7 @@ $clean = static function ($key) {
 };
 
 $name    = $clean('name');
-$phone   = $clean('phone');
+$phone   = trim($_POST['phone'] ?? '');
 $email   = $clean('email');
 $service = $clean('services');
 $message = $clean('message');
@@ -86,9 +83,8 @@ if ($name === '' || $phone === '') {
     enquiry_fail('Please enter your name and mobile number.');
 }
 
-// Indian mobile numbers: 10 digits, optionally with a +91 / 0 prefix.
-$digits = preg_replace('/\D+/', '', $phone);
-if (!preg_match('/^(?:91|0)?[6-9]\d{9}$/', $digits)) {
+// Phone numbers are intentionally limited to exactly 10 digits.
+if (!preg_match('/^[0-9]{10}$/', $phone)) {
     enquiry_fail('Please enter a valid 10-digit mobile number.');
 }
 
@@ -119,8 +115,6 @@ foreach ($rows as $label => $value) {
         . '</tr>';
 }
 
-$callDigits = preg_replace('/\D+/', '', $phone);
-
 $body = '<!DOCTYPE html>
 <html lang="en-IN">
 <head>
@@ -140,7 +134,7 @@ $body = '<!DOCTYPE html>
         </table>
         <div style="height:1px;background:#e4e4e4;margin:16px 0"></div>
         <p style="margin:0;text-align:center">
-          <a href="tel:' . $callDigits . '" style="background:#007bff;color:#fff;text-decoration:none;padding:10px 22px;border-radius:4px;display:inline-block">Call ' . $phone . '</a>
+          <a href="tel:' . $phone . '" style="background:#007bff;color:#fff;text-decoration:none;padding:10px 22px;border-radius:4px;display:inline-block">Call ' . $phone . '</a>
         </p>
       </td>
     </tr>
@@ -149,7 +143,7 @@ $body = '<!DOCTYPE html>
 </html>';
 
 $subjectName = display_name_safe($name);
-$subject     = 'New enquiry from ' . ($subjectName !== '' ? $subjectName : 'website') . ' - ' . header_safe($digits, 20);
+$subject     = 'New enquiry from ' . ($subjectName !== '' ? $subjectName : 'website') . ' - ' . $phone;
 
 // Reply-To points at the visitor when they gave an address, so hitting reply
 // in Gmail answers the customer rather than the website. Re-validate here:
@@ -180,7 +174,7 @@ $sent = @mail(
 
 if (!$sent) {
     // Log for the site owner; never expose mail server details to the visitor.
-    error_log('Enquiry mail failed for ' . $digits . ' from ' . $source);
+    error_log('Enquiry mail failed for ' . $phone . ' from ' . $source);
     enquiry_fail('We could not send your enquiry right now. Please call us on 95814 31299.');
 }
 

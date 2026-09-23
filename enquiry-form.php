@@ -25,7 +25,7 @@ $enquiryError = ($_GET['enquiry'] ?? '') === 'error'
           <div class="enquiry-alert" role="alert"><?php echo $enquiryError; ?></div>
         <?php endif; ?>
 
-        <form class="enquiry-form" method="POST" action="form-to-email-contact.php" novalidate>
+        <form class="enquiry-form" method="POST" action="form-to-email-contact.php">
           <input type="hidden" name="source" value="<?php echo htmlspecialchars($enquiryFormSource, ENT_QUOTES, 'UTF-8'); ?>">
 
           <!-- Honeypot: hidden from people, filled in by bots. -->
@@ -45,7 +45,8 @@ $enquiryError = ($_GET['enquiry'] ?? '') === 'error'
               <div class="enquiry-field">
                 <label for="enq-phone">Mobile number <span aria-hidden="true">*</span></label>
                 <input type="tel" id="enq-phone" name="phone" inputmode="numeric" autocomplete="tel"
-                       pattern="[0-9+ ]{10,15}" required placeholder="10-digit mobile number">
+                    pattern="[0-9]{10}" required
+                     placeholder="10-digit mobile number">
               </div>
             </div>
             <div class="col-md-6">
