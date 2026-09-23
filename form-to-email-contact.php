@@ -20,6 +20,9 @@ error_reporting(E_ALL);
 // The office reads these timestamps; the server may well be on UTC.
 date_default_timezone_set('Asia/Kolkata');
 
+// SMTP sender, plus smtp_config() which reads mail-config.php when present.
+require_once __DIR__ . '/mailer.php';
+
 // ---------------------------------------------------------------------------
 // Settings
 // ---------------------------------------------------------------------------
@@ -296,27 +299,62 @@ $subject     = header_encode('New enquiry from ' . ($subjectName !== '' ? $subje
 $replyTo     = $email !== '' ? $email : ENQUIRY_TO;
 $replyToName = $subjectName !== '' ? $subjectName : 'Website Enquiry';
 
+// ---------------------------------------------------------------------------
+// Send it
+//
+// SMTP first: logging in to a real mailbox is the only way to be certain the
+// message is delivered. mail() stays as a fallback, but note that it reports
+// success as soon as the local mail program takes the message — that is why
+// enquiries appeared to send while never arriving.
+// ---------------------------------------------------------------------------
+
+$smtp    = smtp_config();
+$useSmtp = !empty($smtp['enabled']) && !empty($smtp['host']) && !empty($smtp['password']);
+
+// The From address has to match the account we authenticate as, or Gmail
+// rewrites it and the message looks forged.
+$fromAddress = $useSmtp
+    ? (string) ($smtp['from'] ?? $smtp['username'])
+    : ENQUIRY_FROM;
+$fromName = $useSmtp
+    ? (string) ($smtp['from_name'] ?? ENQUIRY_FROM_NAME)
+    : ENQUIRY_FROM_NAME;
+
 $headers = [
     'MIME-Version: 1.0',
     'Content-Type: multipart/alternative; boundary="' . $boundary . '"',
-    'From: ' . header_encode(ENQUIRY_FROM_NAME) . ' <' . ENQUIRY_FROM . '>',
+    'From: ' . header_encode(display_name_safe($fromName, 80)) . ' <' . $fromAddress . '>',
     'Reply-To: ' . header_encode($replyToName) . ' <' . $replyTo . '>',
-    'X-Mailer: PHP/' . phpversion(),
+    'X-Mailer: Maanvika enquiry form',
 ];
 
-// The -f parameter sets the envelope sender, which is what the receiving
-// server checks SPF against. A few hosts refuse that parameter outright, so
-// retry without it rather than lose the enquiry.
-$sent = @mail(ENQUIRY_TO, $subject, $body, implode("\r\n", $headers), '-f' . ENQUIRY_FROM);
+$sent      = false;
+$sendError = '';
+
+if ($useSmtp) {
+    $sent = smtp_send($smtp, ENQUIRY_TO, $subject, $body, $headers, $sendError);
+
+    if (!$sent) {
+        error_log('Enquiry SMTP failed (' . $sendError . '); falling back to mail()');
+    }
+}
 
 if (!$sent) {
-    $sent = @mail(ENQUIRY_TO, $subject, $body, implode("\r\n", $headers));
+    // The -f parameter sets the envelope sender, which is what the receiving
+    // server checks SPF against. A few hosts refuse that parameter outright,
+    // so retry without it rather than lose the enquiry.
+    $sent = @mail(ENQUIRY_TO, $subject, $body, implode("\r\n", $headers), '-f' . $fromAddress);
+
+    if (!$sent) {
+        $sent = @mail(ENQUIRY_TO, $subject, $body, implode("\r\n", $headers));
+    }
 }
 
 if (!$sent) {
     // The lead is already in ENQUIRY_LOG so nothing is lost, but the visitor
     // must not be left believing we have their number.
-    error_log('Enquiry mail failed for ' . $phone . ' from ' . $source);
+    error_log('Enquiry mail failed for ' . $phone . ' from ' . $source
+        . ($sendError !== '' ? ' - ' . $sendError : ''));
     enquiry_fail('send', $keep);
 }
 

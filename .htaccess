@@ -43,6 +43,13 @@ ErrorDocument 404 /404.php
     Require all denied
 </Files>
 
+# The SMTP password lives in mail-config.php. PHP includes read it from disk,
+# so blocking web access costs nothing and keeps it out of reach if the server
+# ever stops executing PHP (a bad deploy, a config slip) and serves it as text.
+<FilesMatch "^(mail-config|mail-config\.sample|mailer)\.php$">
+    Require all denied
+</FilesMatch>
+
 # Page fragments pulled in by include; on their own they render a broken
 # fragment or nothing at all. PHP includes read them from disk, so denying
 # web access does not affect the pages that use them.

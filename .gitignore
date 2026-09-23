@@ -12,3 +12,7 @@ desktop.ini
 .idea/
 *.swp
 *.bak
+
+# SMTP credentials for the enquiry form. The sample file is committed; this
+# one holds the real password and must never reach the repository.
+mail-config.php
