@@ -81,6 +81,22 @@ function smtp_send(array $cfg, $to, $subject, $body, array $headers, &$error)
         return false;
     }
 
+    if (stripos($pass, 'PASTE') !== false) {
+        $error = 'The password placeholder is still in mail-config.php — the App Password has not been filled in.';
+        return false;
+    }
+
+    // Google displays App Passwords as four groups of four lowercase letters
+    // ("abcd efgh ijkl mnop") and people paste them exactly as shown, spaces
+    // and all. The spaces are only for readability and must not be sent.
+    //
+    // Matching that exact shape rather than merely counting characters means
+    // an ordinary mailbox password that happens to contain spaces is never
+    // silently altered.
+    if (preg_match('/^[a-z]{4} [a-z]{4} [a-z]{4} [a-z]{4}$/', $pass)) {
+        $pass = str_replace(' ', '', $pass);
+    }
+
     // Both encrypted options need the openssl extension. Saying so plainly
     // here saves a long hunt through a connection error later.
     if ($security !== 'none' && !extension_loaded('openssl')) {
@@ -212,5 +228,17 @@ function smtp_config()
 
     $cfg = include $file;
 
-    return is_array($cfg) ? $cfg : [];
+    if (!is_array($cfg)) {
+        return [];
+    }
+
+    // The committed template carries this flag. Refusing it means a copy made
+    // under the wrong name can never quietly become the live configuration,
+    // and the diagnostic page says plainly that the password is in the wrong
+    // file rather than reporting a puzzling login failure.
+    if (!empty($cfg['is_template'])) {
+        return ['template_in_use' => true];
+    }
+
+    return $cfg;
 }

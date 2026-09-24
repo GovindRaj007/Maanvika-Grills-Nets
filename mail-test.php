@@ -188,8 +188,38 @@ $passLooks = $cfgPass !== '' && stripos($cfgPass, 'PASTE') === false;
 ?>
 <table>
 <?php
-row('mail-config.php', $haveCfg ? 'present' : 'MISSING — copy mail-config.sample.php to mail-config.php',
+$sampleFile = __DIR__ . '/mail-config.sample.php';
+$sampleSrc  = is_file($sampleFile) ? (string) file_get_contents($sampleFile) : '';
+// The sample file mentions 'password' more than once — the commented Option B
+// example appears before the real setting — so every occurrence is checked and
+// anything that is not a known placeholder counts as a real password.
+$sampleHasPw = false;
+if ($sampleSrc !== '' && preg_match_all("/'password'\s*=>\s*'([^']*)'/", $sampleSrc, $pm)) {
+    foreach ($pm[1] as $candidate) {
+        $candidate = trim($candidate);
+        if ($candidate === ''
+            || stripos($candidate, 'PASTE') !== false
+            || stripos($candidate, 'mailbox password') !== false) {
+            continue;
+        }
+        $sampleHasPw = true;
+        break;
+    }
+}
+
+row('mail-config.php', $haveCfg ? 'present' : 'MISSING — this is why the form still used mail()',
     $haveCfg ? 'good' : 'bad');
+
+if (!empty($cfg['template_in_use'])) {
+    row('Problem', 'mail-config.php is a straight copy of the template and still carries '
+        . "'is_template' => true. Delete that line from mail-config.php.", 'bad');
+}
+
+if ($sampleHasPw) {
+    row('SECURITY', 'A real password is sitting in mail-config.sample.php. That file is committed '
+        . 'to git and pushed to GitHub, so the password is exposed. Revoke it in the Google account '
+        . 'immediately, generate a new one, and put the new one in mail-config.php only.', 'bad');
+}
 if ($haveCfg) {
     row('Enabled', $cfgOn ? 'yes' : "no ('enabled' => false, so the form still uses mail())",
         $cfgOn ? 'good' : 'warn');

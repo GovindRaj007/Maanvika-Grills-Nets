@@ -1,15 +1,25 @@
 <?php
 /**
- * SMTP settings for the enquiry form.
+ * SMTP settings for the enquiry form — TEMPLATE ONLY.
+ *
+ * ###########################################################################
+ * #  DO NOT PUT THE PASSWORD IN THIS FILE.                                  #
+ * #                                                                         #
+ * #  This file is committed to git and pushed to GitHub. A password typed   #
+ * #  here becomes public. It has happened once already, and the App         #
+ * #  Password had to be revoked.                                            #
+ * #                                                                         #
+ * #  The password belongs in  mail-config.php  — a copy of this file that   #
+ * #  git ignores and the web server refuses to serve.                       #
+ * ###########################################################################
  *
  * HOW TO USE THIS FILE
- *   1. Copy it to  mail-config.php  (same folder).
- *   2. Fill in the password below.
- *   3. Upload mail-config.php to the server.
+ *   1. Copy it to  mail-config.php  (same folder, note: no ".sample").
+ *   2. Fill the password into mail-config.php — never into this one.
+ *   3. Upload mail-config.php to the server, in the same folder as index.php.
  *
- * mail-config.php is deliberately kept out of git and blocked from the web,
- * so the password never ends up in the repository or readable in a browser.
- * This sample file carries no password and is safe to commit.
+ * As a safety net the form ignores this file even if it is renamed wrongly:
+ * the 'is_template' flag below makes it refuse to be used as a live config.
  *
  * ---------------------------------------------------------------------------
  * OPTION A — send through the Gmail account itself (recommended)
@@ -43,6 +53,11 @@
  */
 
 return [
+    // Marks this as the template. smtp_config() refuses any config carrying
+    // this flag, so the form cannot accidentally run on the committed file.
+    // Delete this line in your mail-config.php.
+    'is_template' => true,
+
     // false falls back to PHP mail(), which is what was failing before.
     'enabled' => true,
 
@@ -51,7 +66,7 @@ return [
     'security' => 'tls',        // 'tls' | 'ssl' | 'none'
 
     'username' => 'maanvikasafetysolutions@gmail.com',
-    'password' => 'yavi zzav actf awii',
+    'password' => 'PASTE THE 16-CHARACTER APP PASSWORD HERE',
 
     // The address the mail is sent from. With Gmail this must be the account
     // above, or Gmail silently rewrites it.
