@@ -1,4 +1,4 @@
-<?php include 'enquiry-state.php'; ?>
+<?php require __DIR__ . '/core/bootstrap.php'; ?>
 <!DOCTYPE html>
 <html lang="en-IN">
 
@@ -214,7 +214,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </section>
 <!-- Contact Info Section End -->
 
-<?php $enquiryFormSource = 'Contact Page'; include 'enquiry-form.php'; ?>
+<?php include 'enquiry-form.php'; ?>
 
     <!-- Page Header End -->
     <iframe src="https://www.google.com/maps/embed?pb=!1m16!1m12!1m3!1d25726.930054280183!2d80.18134881060622!3d13.087282010031842!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!2m1!1s150%202nd%20Floor%2C%20Near%20Hotel%20Vasantha%20Bhavan%2C%203rd%20Avenue%2C%20Anna%20Nagar%2C%20Chennai%20-%20600040!5e0!3m2!1sen!2sin!4v1745937697680!5m2!1sen!2sin" width="100%" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>

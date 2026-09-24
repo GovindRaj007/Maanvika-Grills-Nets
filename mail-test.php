@@ -1,339 +1,229 @@
 <?php
 /**
- * TEMPORARY mail diagnostic. DELETE THIS FILE once the form is delivering.
+ * TEMPORARY deployment check. DELETE THIS FILE once the form is delivering.
  *
  * Open it on the LIVE site:
  *   https://maanvikasafetynetschennai.com/mail-test.php?key=a1d63f46b4c395dd
  *
- * It reports what this server can actually do, and only sends test mail when
- * you add &send=1 to the address, so simply opening the page is harmless.
+ * The form sends with PHP's mail(). Whether that reaches the inbox is decided
+ * by the hosting account, not by the code, and the usual culprit is a sender
+ * address that does not exist as a real mailbox on the domain. Section 3 sends
+ * the same message from three different senders so you can see which one this
+ * host accepts and which one actually arrives.
  *
- * The key stops strangers from using this page to probe the server or fire
- * mail from it.
+ * Opening the page sends nothing; you have to press a button.
  */
 
 const DIAG_KEY = 'a1d63f46b4c395dd';
-const DIAG_TO  = 'maanvikasafetysolutions@gmail.com';
 
 if (!hash_equals(DIAG_KEY, (string) ($_GET['key'] ?? ''))) {
     http_response_code(404);
     exit('Not found');
 }
 
+define('ROOT_DIR', __DIR__);
+require_once ROOT_DIR . '/config/site.php';
+require_once ROOT_DIR . '/core/helpers.php';
+
 header('Content-Type: text/html; charset=UTF-8');
 header('X-Robots-Tag: noindex, nofollow');
 
 date_default_timezone_set('Asia/Kolkata');
 
-require_once __DIR__ . '/mailer.php';
-
-$send   = ($_GET['send'] ?? '') === '1';
-$smtp   = ($_GET['smtp'] ?? '') === '1';
-$domain = $_SERVER['HTTP_HOST'] ?? 'maanvikasafetynetschennai.com';
-$domain = preg_replace('/^www\./', '', strtolower($domain));
+$runSend = ($_GET['send'] ?? '') === '1';
 
 /** Print one label/value row. */
 function row($label, $value, $status = '')
 {
     $class = $status !== '' ? ' class="' . $status . '"' : '';
-    echo '<tr><th>' . htmlspecialchars($label) . '</th><td' . $class . '>'
-       . nl2br(htmlspecialchars((string) $value)) . "</td></tr>\n";
+    echo '<tr><th>' . e($label) . '</th><td' . $class . '>'
+       . nl2br(e((string) $value)) . "</td></tr>\n";
 }
 
-/** Run one mail() attempt and describe exactly what happened. */
-function try_send($title, $to, $subject, $body, array $headers, $envelope = null)
+/** Present / missing, as a row. */
+function row_file($label, $path)
 {
-    // error_get_last() is how we recover the reason mail() refused: PHP raises
-    // a warning there rather than returning anything useful.
+    $there = is_file($path);
+    row($label, $there ? 'present' : 'MISSING — upload it', $there ? 'good' : 'bad');
+    return $there;
+}
+
+/**
+ * Send one test message and report precisely what mail() did.
+ *
+ * mail() returns true as soon as the local mail program accepts the message,
+ * which is not the same as delivery — so "accepted" here means only that the
+ * server took it, and the inbox is the real test.
+ */
+function try_send($label, $fromAddress, $useEnvelope)
+{
+    $subject = mime_header('[' . $label . '] ' . SITE_NAME . ' ' . date('H:i:s'));
+
+    $headers = [
+        'From: ' . mime_header(SITE_NAME) . ' <' . $fromAddress . '>',
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset=UTF-8',
+        'Content-Transfer-Encoding: 8bit',
+    ];
+
+    $body = "Test [" . $label . "] from the enquiry form diagnostic.\r\n\r\n"
+          . 'Sender (From): ' . $fromAddress . "\r\n"
+          . 'Envelope -f  : ' . ($useEnvelope ? $fromAddress : 'not set') . "\r\n"
+          . 'Sent         : ' . date('d M Y, g:i A') . " IST\r\n";
+
     $before = error_get_last();
 
-    $ok = $envelope === null
-        ? @mail($to, $subject, $body, implode("\r\n", $headers))
-        : @mail($to, $subject, $body, implode("\r\n", $headers), '-f' . $envelope);
+    $ok = $useEnvelope
+        ? @mail(RECIPIENT_INBOX, $subject, $body, implode("\r\n", $headers), '-f' . $fromAddress)
+        : @mail(RECIPIENT_INBOX, $subject, $body, implode("\r\n", $headers));
 
     $after  = error_get_last();
-    $reason = ($after !== $before && isset($after['message'])) ? $after['message'] : '';
+    $reason = ($after !== $before && isset($after['message'])) ? (string) $after['message'] : '';
 
-    return [
-        'title'    => $title,
-        'ok'       => $ok,
-        'reason'   => $reason,
-        'headers'  => $headers,
-        'envelope' => $envelope,
-    ];
+    return ['ok' => $ok, 'reason' => $reason, 'from' => $fromAddress];
 }
-
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Mail diagnostic</title>
+<title>Form deployment check</title>
 <style>
   body { font: 15px/1.5 system-ui, -apple-system, Segoe UI, Arial, sans-serif; margin: 0; padding: 24px; background: #f6f7f9; color: #222; }
-  .wrap { max-width: 860px; margin: 0 auto; }
+  .wrap { max-width: 880px; margin: 0 auto; }
   h1 { font-size: 22px; margin: 0 0 4px; }
   h2 { font-size: 17px; margin: 32px 0 8px; }
   p.lead { color: #666; margin: 0 0 20px; }
   table { border-collapse: collapse; width: 100%; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
   th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid #eee; vertical-align: top; font-size: 14px; }
-  th { width: 34%; color: #555; font-weight: 600; background: #fafbfc; }
+  th { width: 36%; color: #555; font-weight: 600; background: #fafbfc; }
   td.good { color: #1a7f37; font-weight: 600; }
   td.bad  { color: #b3261e; font-weight: 600; }
   td.warn { color: #9a6700; font-weight: 600; }
   code { background: #eef0f3; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
   .note { background: #fff8e5; border: 1px solid #f0dca4; border-radius: 8px; padding: 14px 16px; margin: 20px 0; font-size: 14px; }
-  .btn { display: inline-block; margin-top: 14px; background: #0b62d6; color: #fff; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-weight: 600; }
+  .note ol { margin: 8px 0 0; padding-left: 20px; }
+  .note li { margin-bottom: 6px; }
+  .btn { display: inline-block; margin: 14px 8px 0 0; background: #0b62d6; color: #fff; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-weight: 600; }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-<h1>Mail diagnostic</h1>
-<p class="lead">Run on <?php echo htmlspecialchars($domain); ?> at <?php echo date('d M Y, g:i A'); ?> (IST)</p>
+<h1>Form deployment check</h1>
+<p class="lead"><?php echo e(SITE_NAME); ?> &middot; <?php echo e(date('d M Y, g:i A')); ?> IST</p>
 
-<h2>1. Can this server send mail at all?</h2>
+<h2>1. Is every file installed?</h2>
+<table>
+<?php
+row_file('config/site.php',             ROOT_DIR . '/config/site.php');
+row_file('core/helpers.php',            ROOT_DIR . '/core/helpers.php');
+row_file('core/csrf.php',               ROOT_DIR . '/core/csrf.php');
+row_file('core/bootstrap.php',          ROOT_DIR . '/core/bootstrap.php');
+row_file('actions/contact-handler.php', ROOT_DIR . '/actions/contact-handler.php');
+row_file('enquiry-form.php',            ROOT_DIR . '/enquiry-form.php');
+
+// Files that were deleted locally must be deleted on the server too, or an old
+// copy stays reachable.
+foreach (['form-to-email-contact.php', 'enquiry-state.php', 'thank-you.php'] as $stale) {
+    if (is_file(ROOT_DIR . '/' . $stale)) {
+        row('Old file still on the server', $stale . ' — delete it', 'warn');
+    }
+}
+
+// SMTP is entirely optional now; say so rather than flagging it as missing.
+row('core/mailer.php (optional)', is_file(ROOT_DIR . '/core/mailer.php')
+        ? 'present — only used if mail() fails and SMTP credentials exist'
+        : 'not installed — fine, the form does not need it');
+?>
+</table>
+
+<h2>2. Environment</h2>
 <table>
 <?php
 $disabled     = array_map('trim', explode(',', (string) ini_get('disable_functions')));
 $mailDisabled = in_array('mail', $disabled, true) || !function_exists('mail');
 
-row('PHP version', PHP_VERSION, version_compare(PHP_VERSION, '7.0', '>=') ? 'good' : 'bad');
-row('mail() available', $mailDisabled ? 'NO - the host has disabled it' : 'yes', $mailDisabled ? 'bad' : 'good');
-row('sendmail_path', ini_get('sendmail_path') ?: '(empty - this server has no local mail program)',
-    ini_get('sendmail_path') ? '' : 'warn');
-row('SMTP / smtp_port (Windows only)', (ini_get('SMTP') ?: '-') . ' : ' . (ini_get('smtp_port') ?: '-'));
+row('PHP version', PHP_VERSION, version_compare(PHP_VERSION, '8.0', '>=') ? 'good' : 'warn');
+row('SITE_ENV', SITE_ENV, SITE_ENV === 'production' ? 'good' : 'warn');
+row('mail() available', $mailDisabled ? 'NO — the host has disabled it' : 'yes',
+    $mailDisabled ? 'bad' : 'good');
+row('sendmail_path', ini_get('sendmail_path') ?: '(empty — no local mail program)',
+    ini_get('sendmail_path') ? 'good' : 'warn');
+row('Sessions', session_status() !== PHP_SESSION_DISABLED ? 'available' : 'DISABLED — CSRF cannot work',
+    session_status() !== PHP_SESSION_DISABLED ? 'good' : 'bad');
+row('mbstring', function_exists('mb_substr') ? 'yes' : 'no (substr fallback in use)',
+    function_exists('mb_substr') ? 'good' : 'warn');
+row('Enquiries delivered to', RECIPIENT_INBOX);
+row('Form sends as (MAIL_FROM)', MAIL_FROM);
 row('Server software', $_SERVER['SERVER_SOFTWARE'] ?? 'unknown');
-row('Document root', $_SERVER['DOCUMENT_ROOT'] ?? 'unknown');
 ?>
 </table>
 
-<h2>2. Are the current form files actually on this server?</h2>
-<table>
-<?php
-$handler = __DIR__ . '/form-to-email-contact.php';
-$state   = __DIR__ . '/enquiry-state.php';
-$log     = __DIR__ . '/enquiry-leads.log';
+<div class="note">
+<strong>Why the form sends from a Gmail address.</strong>
+There is no mailbox on this domain, so the sender has to be one that genuinely exists. The previous
+setting, <code>no-reply@<?php echo e(SITE_DOMAIN); ?></code>, was never created in the hosting panel:
+the server accepted each enquiry, found it came from an address it did not own, and dropped it &mdash;
+with no bounce, because the bounce had nowhere to go either. Sending as
+<code><?php echo e(MAIL_FROM); ?></code> works today, but Gmail cannot verify that this web server is
+allowed to send as gmail.com, so the message may land in spam. Test it below.
+</div>
 
-$handlerSrc = is_file($handler) ? (string) file_get_contents($handler) : '';
-$isNew      = strpos($handlerSrc, 'ENQUIRY_LOG') !== false;
-
-row('form-to-email-contact.php', is_file($handler)
-        ? 'present, updated ' . date('d M Y, g:i A', filemtime($handler))
-        : 'MISSING', is_file($handler) ? 'good' : 'bad');
-row('Which version is live', $isNew
-        ? 'the updated handler (writes a lead log, normalises phone numbers)'
-        : 'the OLD handler - the new files were not uploaded', $isNew ? 'good' : 'bad');
-row('enquiry-state.php', is_file($state) ? 'present' : 'MISSING - upload it', is_file($state) ? 'good' : 'bad');
-
-if ($isNew) {
-    // Read the addresses the live handler is really using, rather than assuming.
-    preg_match("/ENQUIRY_FROM\s*=\s*'([^']*)'/", $handlerSrc, $m);
-    $liveFrom = $m[1] ?? '(not found)';
-    preg_match("/ENQUIRY_TO\s*=\s*'([^']*)'/", $handlerSrc, $m2);
-    row('Delivering to', $m2[1] ?? '(not found)');
-
-    // With SMTP switched on the config decides the sender, so report the one
-    // that will really be used rather than the constant in the handler.
-    $cfgPeek = smtp_config();
-    $smtpOn  = !empty($cfgPeek['enabled']) && !empty($cfgPeek['host']) && !empty($cfgPeek['password'])
-               && stripos((string) $cfgPeek['password'], 'PASTE') === false;
-
-    row('How it sends', $smtpOn
-            ? 'SMTP login (reliable)'
-            : 'PHP mail() — this is what was silently failing', $smtpOn ? 'good' : 'warn');
-    row('Sending as (From)', $smtpOn
-            ? (string) ($cfgPeek['from'] ?? $cfgPeek['username']) . ' (from mail-config.php)'
-            : $liveFrom);
-}
-
-row('Folder writable for the lead log', is_writable(__DIR__) ? 'yes' : 'NO - leads cannot be logged',
-    is_writable(__DIR__) ? 'good' : 'warn');
-?>
-</table>
-
-<h2>3. Did your test submission reach the handler?</h2>
-<?php if (!$isNew): ?>
-  <div class="note">The old handler is still live, so there is no lead log to check. Upload the updated files first.</div>
-<?php elseif (!is_file($log)): ?>
-  <div class="note"><strong>No lead log exists yet.</strong> The updated handler writes every submission here
-  <em>before</em> it tries to email. If you have submitted the form since uploading these files and this file is
-  still missing, the form never reached the handler at all &mdash; that is a different problem from mail delivery,
-  and the redirect or file permissions are the place to look.</div>
-<?php else:
-    $lines = array_slice(array_filter(explode("\n", (string) file_get_contents($log))), -10);
-?>
-  <div class="note"><strong>The handler received <?php echo count($lines); ?> recent submission(s).</strong>
-  If your test is listed here, the form itself is working perfectly and the problem is purely mail delivery.</div>
-  <table>
-<?php   foreach ($lines as $line) {
-            $lead = json_decode($line, true);
-            if (!is_array($lead)) { continue; }
-            row(date('d M, g:i A', strtotime($lead['at'] ?? 'now')),
-                ($lead['name'] ?? '?') . ' - ' . ($lead['phone'] ?? '?')
-                . (($lead['email'] ?? '') !== '' ? ' - ' . $lead['email'] : '')
-                . "\n" . 'from: ' . ($lead['source'] ?? '?'));
-        } ?>
-  </table>
-<?php endif; ?>
-
-<h2>4. SMTP login (the fix)</h2>
-<?php
-$cfg       = smtp_config();
-$haveCfg   = !empty($cfg);
-$cfgOn     = !empty($cfg['enabled']);
-$cfgPass   = (string) ($cfg['password'] ?? '');
-$passLooks = $cfgPass !== '' && stripos($cfgPass, 'PASTE') === false;
-?>
-<table>
-<?php
-$sampleFile = __DIR__ . '/mail-config.sample.php';
-$sampleSrc  = is_file($sampleFile) ? (string) file_get_contents($sampleFile) : '';
-// The sample file mentions 'password' more than once — the commented Option B
-// example appears before the real setting — so every occurrence is checked and
-// anything that is not a known placeholder counts as a real password.
-$sampleHasPw = false;
-if ($sampleSrc !== '' && preg_match_all("/'password'\s*=>\s*'([^']*)'/", $sampleSrc, $pm)) {
-    foreach ($pm[1] as $candidate) {
-        $candidate = trim($candidate);
-        if ($candidate === ''
-            || stripos($candidate, 'PASTE') !== false
-            || stripos($candidate, 'mailbox password') !== false) {
-            continue;
-        }
-        $sampleHasPw = true;
-        break;
-    }
-}
-
-row('mail-config.php', $haveCfg ? 'present' : 'MISSING — this is why the form still used mail()',
-    $haveCfg ? 'good' : 'bad');
-
-if (!empty($cfg['template_in_use'])) {
-    row('Problem', 'mail-config.php is a straight copy of the template and still carries '
-        . "'is_template' => true. Delete that line from mail-config.php.", 'bad');
-}
-
-if ($sampleHasPw) {
-    row('SECURITY', 'A real password is sitting in mail-config.sample.php. That file is committed '
-        . 'to git and pushed to GitHub, so the password is exposed. Revoke it in the Google account '
-        . 'immediately, generate a new one, and put the new one in mail-config.php only.', 'bad');
-}
-if ($haveCfg) {
-    row('Enabled', $cfgOn ? 'yes' : "no ('enabled' => false, so the form still uses mail())",
-        $cfgOn ? 'good' : 'warn');
-    row('Mail server', ($cfg['host'] ?? '?') . ':' . ($cfg['port'] ?? '?')
-        . ' (' . ($cfg['security'] ?? '?') . ')');
-    row('Logging in as', $cfg['username'] ?? '(blank)');
-    row('Password filled in', $passLooks
-            ? 'yes (' . strlen(str_replace(' ', '', $cfgPass)) . ' characters)'
-            : 'NO — the placeholder is still there', $passLooks ? 'good' : 'bad');
-    row('OpenSSL available', extension_loaded('openssl') ? 'yes' : 'NO — encrypted SMTP will not work',
-        extension_loaded('openssl') ? 'good' : 'bad');
-}
-?>
-</table>
-
-<?php if ($haveCfg && $passLooks): ?>
-  <?php if (!$smtp): ?>
-    <a class="btn" href="?key=<?php echo urlencode(DIAG_KEY); ?>&amp;smtp=1">Send a test email over SMTP</a>
-  <?php else:
-      $err  = '';
-      $body = "This is the SMTP test from the Maanvika enquiry form.\r\n\r\n"
-            . "If you are reading this in the inbox, the form is fixed.\r\n"
-            . 'Sent ' . date('d M Y, g:i A') . " IST\r\n";
-      $hdrs = [
-          'MIME-Version: 1.0',
-          'Content-Type: text/plain; charset=UTF-8',
-          'From: ' . ($cfg['from_name'] ?? 'Maanvika Website') . ' <' . ($cfg['from'] ?? $cfg['username']) . '>',
-      ];
-      $ok = smtp_send($cfg, DIAG_TO, '[SMTP TEST] Maanvika enquiry form ' . date('H:i:s'), $body, $hdrs, $err);
-  ?>
-    <table>
-      <?php row('SMTP send', $ok ? 'DELIVERED — check the inbox now' : 'FAILED', $ok ? 'good' : 'bad'); ?>
-      <?php if (!$ok) { row('Reason', $err, 'bad'); } ?>
-    </table>
-    <?php if ($ok): ?>
-      <div class="note"><strong>That message was handed directly to the mail server and accepted.</strong>
-      Unlike mail(), this is a real confirmation: the server took responsibility for it. Submit the form once
-      more to confirm the whole path, then delete this file.</div>
-    <?php endif; ?>
-  <?php endif; ?>
-<?php elseif ($haveCfg): ?>
-  <div class="note">Fill in the App Password in <code>mail-config.php</code>, then reload this page.</div>
-<?php endif; ?>
-
-<h2>5. Old mail() behaviour, for comparison</h2>
-<?php if (!$send): ?>
-  <div class="note">Nothing has been sent yet. The button below sends three test emails to
-  <code><?php echo htmlspecialchars(DIAG_TO); ?></code>, each using a different sender setup, so we can see
-  which one this host accepts. Then check the inbox <strong>and the spam folder</strong>.</div>
+<h2>3. Which sender does this host actually deliver?</h2>
+<?php if (!$runSend): ?>
+  <div class="note">
+    This sends three messages to <code><?php echo e(RECIPIENT_INBOX); ?></code>, each from a different
+    sender. Afterwards check the inbox <strong>and the spam folder</strong> and note which ones arrived:
+    <ol>
+      <li><strong>A</strong> &mdash; from <code><?php echo e(MAIL_FROM); ?></code> with the envelope sender set.
+          This is exactly what the form does now.</li>
+      <li><strong>B</strong> &mdash; the same sender without the envelope argument, in case this host
+          rejects it.</li>
+      <li><strong>C</strong> &mdash; from <code>no-reply@<?php echo e(SITE_DOMAIN); ?></code>, which has no
+          mailbox behind it. This is the setting that was failing, kept here only so you can see the
+          difference for yourself.</li>
+    </ol>
+  </div>
   <a class="btn" href="?key=<?php echo urlencode(DIAG_KEY); ?>&amp;send=1">Send the three test emails</a>
 <?php else:
-    $stamp = date('H:i:s');
-    $tests = [];
-
-    // A: what the updated handler does now - sender on our own domain.
-    $tests[] = try_send(
-        'A - From no-reply@' . $domain . ', envelope set (current form setting)',
-        DIAG_TO,
-        '[TEST A] Maanvika form diagnostic ' . $stamp,
-        "Test A: sender on the site's own domain, envelope sender set with -f.\r\n",
-        [
-            'MIME-Version: 1.0',
-            'Content-Type: text/plain; charset=UTF-8',
-            'From: Maanvika Website <no-reply@' . $domain . '>',
-            'Reply-To: no-reply@' . $domain,
-        ],
-        'no-reply@' . $domain
-    );
-
-    // B: what the form did before - sender claiming to be the gmail address.
-    $tests[] = try_send(
-        'B - From ' . DIAG_TO . ' (the old setting)',
-        DIAG_TO,
-        '[TEST B] Maanvika form diagnostic ' . $stamp,
-        "Test B: sender claiming to be the gmail address.\r\n",
-        [
-            'MIME-Version: 1.0',
-            'Content-Type: text/plain; charset=UTF-8',
-            'From: Maanvika Website <' . DIAG_TO . '>',
-        ],
-        DIAG_TO
-    );
-
-    // C: the barest possible call - isolates mail() itself from our headers.
-    $tests[] = try_send(
-        'C - bare mail(), no custom headers',
-        DIAG_TO,
-        '[TEST C] Maanvika form diagnostic ' . $stamp,
-        "Test C: plainest possible mail() call.\r\n",
-        []
-    );
+    $tests = [
+        'A' => try_send('TEST A', MAIL_FROM, true),
+        'B' => try_send('TEST B', MAIL_FROM, false),
+        'C' => try_send('TEST C', 'no-reply@' . SITE_DOMAIN, true),
+    ];
 ?>
   <table>
-<?php   foreach ($tests as $t) {
-            row($t['title'],
-                ($t['ok'] ? 'ACCEPTED by the server' : 'REFUSED')
-                . ($t['reason'] !== '' ? "\n" . $t['reason'] : ''),
-                $t['ok'] ? 'good' : 'bad');
-        } ?>
+<?php foreach ($tests as $label => $t) {
+        row('Test ' . $label . ' — from ' . $t['from'],
+            ($t['ok'] ? 'accepted by the server' : 'REFUSED')
+            . ($t['reason'] !== '' ? "\n" . $t['reason'] : ''),
+            $t['ok'] ? 'good' : 'bad');
+      } ?>
   </table>
   <div class="note">
-    <strong>Reading the result.</strong><br>
-    &bull; <em>All three refused</em> &rarr; this host will not send mail from PHP at all. The form must send
-    through an SMTP login instead.<br>
-    &bull; <em>Accepted, but nothing arrives (check spam too)</em> &rarr; the host sends, but Gmail is discarding it.
-    An SMTP login fixes this permanently; an SPF record is the lighter fix.<br>
-    &bull; <em>B arrives but A does not</em> &rarr; tell me, and I will point the form back at the old sender.<br>
-    &bull; <em>A arrives</em> &rarr; mail works; the problem is elsewhere in the form and section 3 above will show it.
+    <strong>Now check the inbox and the spam folder, then read the result like this.</strong><br><br>
+    &bull; <em>A arrives (inbox or spam)</em> &rarr; the form will deliver. If it was in spam, open it and
+      press <strong>Not spam</strong>; that trains the filter for future enquiries.<br>
+    &bull; <em>A does not arrive but B does</em> &rarr; this host rejects the <code>-f</code> argument.
+      Tell me and I will drop it.<br>
+    &bull; <em>C arrives but A does not</em> &rarr; the opposite of what we expect; tell me and I will switch
+      the sender back to the domain.<br>
+    &bull; <em>All three accepted but none arrive</em> &rarr; the host is not delivering outbound mail at all.
+      That is a support ticket, not a code change &mdash; ask them to confirm PHP <code>mail()</code> is
+      enabled and not blocked for this account.<br><br>
+    <strong>Either way, the permanent fix is ten minutes in cPanel:</strong> create
+    <code>no-reply@<?php echo e(SITE_DOMAIN); ?></code> under Email Accounts (free with the hosting, nothing
+    needs to log in to it), confirm the domain has an SPF record, then change <code>MAIL_FROM</code> in
+    <code>config/site.php</code> to that address. Enquiries then land in the inbox every time instead of
+    depending on how Gmail feels about an unverified sender.
   </div>
 <?php endif; ?>
 
 <h2>When you are done</h2>
-<div class="note">Delete <code>mail-test.php</code> from the server once the form is delivering. It is not linked
-from the site and search engines are told to ignore it, but it does not belong on a live site permanently.</div>
+<div class="note">Delete <code>mail-test.php</code> from the server. It is not linked from the site and search
+engines are told to ignore it, but it does not belong on a live site permanently.</div>
 
 </div>
 </body>

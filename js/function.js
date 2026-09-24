@@ -498,23 +498,22 @@
 
 	/* Enquiry form.
 
-	   It posts straight to form-to-email-contact.php, which validates server
-	   side and redirects to thank-you.php, so there is no AJAX handler here.
-	   Two small things are worth doing on the page itself:
+	   It posts to actions/contact-handler.php, which validates server side and
+	   redirects back here with the result in the query string. The form is
+	   marked novalidate and carries no client-side validation on purpose: the
+	   server checks every rule anyway, and duplicating them in JavaScript only
+	   creates a second set that can disagree with the first.
 
-	   1. Lock the button once a valid form is on its way. On a slow mobile
+	   Two things are still worth doing on the page itself:
+
+	   1. Lock the button once the form is on its way. On a slow mobile
 	      connection an impatient second tap sends the same lead twice.
-	   2. Put the cursor on the error message after a rejected submission, so
-	      a screen reader announces it and everyone else lands beside it. */
+	   2. Move the cursor to the message after a rejected submission, so a
+	      screen reader announces it and everyone else lands beside it. */
 	(function () {
 		var form = document.querySelector('.enquiry-form');
 		if (form) {
 			form.addEventListener('submit', function () {
-				/* checkValidity() is false when the browser is about to block
-				   the submit and show its own bubble; the button must stay
-				   usable in that case. */
-				if (form.checkValidity && !form.checkValidity()) { return; }
-
 				var button = form.querySelector('.enquiry-submit');
 				if (!button) { return; }
 
@@ -537,8 +536,11 @@
 			}
 		});
 
-		var alertBox = document.getElementById('enquiry-alert');
-		if (alertBox) { alertBox.focus(); }
+		/* After a redirect the browser lands on #enquiry; focusing the message
+		   or the thank-you panel is what makes a screen reader read it out. */
+		var announce = document.getElementById('enquiry-alert')
+			|| document.getElementById('enquiry-thanks');
+		if (announce) { announce.focus(); }
 	})();
 
 

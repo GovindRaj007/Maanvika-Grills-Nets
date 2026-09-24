@@ -21,6 +21,11 @@
  * Configure it in mail-config.php (copy mail-config.sample.php).
  */
 
+if (!defined('ROOT_DIR')) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 /**
  * Read one complete SMTP reply, including multi-line ones.
  *
@@ -217,12 +222,26 @@ function smtp_send(array $cfg, $to, $subject, $body, array $headers, &$error)
     return true;
 }
 
-/** Load mail-config.php if it is present, otherwise an empty configuration. */
+/**
+ * Load the SMTP credentials.
+ *
+ * config/mail-config.php is the proper home for it; the site root is still
+ * accepted because that is where the file was first installed, and a deploy
+ * that moves it should not silently stop the form sending.
+ */
 function smtp_config()
 {
-    $file = __DIR__ . '/mail-config.php';
+    $root = defined('ROOT_DIR') ? ROOT_DIR : dirname(__DIR__);
 
-    if (!is_file($file)) {
+    $file = null;
+    foreach ([$root . '/config/mail-config.php', $root . '/mail-config.php'] as $candidate) {
+        if (is_file($candidate)) {
+            $file = $candidate;
+            break;
+        }
+    }
+
+    if ($file === null) {
         return [];
     }
 

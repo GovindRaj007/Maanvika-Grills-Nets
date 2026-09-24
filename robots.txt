@@ -2,7 +2,8 @@ User-agent: *
 Allow: /
 
 # Nothing useful for crawlers on these
-Disallow: /form-to-email-contact.php
-Disallow: /thank-you.php
+Disallow: /actions/
+Disallow: /config/
+Disallow: /core/
 
 Sitemap: https://maanvikasafetynetschennai.com/sitemap.xml

@@ -7595,3 +7595,92 @@ body.is-menu-open {
 .footer-brand {
 	margin-bottom: 20px;
 }
+
+/* Enquiry form: per-field messages, choice grid, consent and thank-you panel.
+   Added when the form moved to server-side validation with a message beside
+   each field. */
+
+.enquiry-error {
+	margin: 6px 0 0;
+	font-size: 14px;
+	color: #b3261e;
+}
+
+.enquiry-field input[aria-invalid="true"],
+.enquiry-field select[aria-invalid="true"] {
+	border-color: #b3261e;
+}
+
+.enquiry-choices {
+	border: 0;
+	padding: 0;
+	margin: 0 0 18px;
+	min-width: 0;
+}
+
+.enquiry-choices legend {
+	display: block;
+	float: none;
+	width: auto;
+	font-size: 14px;
+	font-weight: 600;
+	margin-bottom: 8px;
+	color: #2b2b2b;
+}
+
+.enquiry-choice-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 8px 16px;
+}
+
+.enquiry-choice {
+	display: flex;
+	align-items: flex-start;
+	gap: 9px;
+	font-size: 15px;
+	font-weight: 400;
+	margin: 0;
+	cursor: pointer;
+}
+
+.enquiry-choice input {
+	width: auto;
+	/* 18px keeps the tap target usable without knocking the label out of line. */
+	min-width: 18px;
+	height: 18px;
+	margin-top: 2px;
+	flex: 0 0 auto;
+}
+
+.enquiry-consent {
+	margin-bottom: 18px;
+}
+
+.enquiry-thanks {
+	background: #fff;
+	border: 1px solid #cfe8d6;
+	border-left: 4px solid #299B46;
+	border-radius: 8px;
+	padding: 20px 22px;
+	font-size: 16px;
+}
+
+.enquiry-thanks p {
+	margin: 0 0 10px;
+}
+
+.enquiry-thanks p:last-child {
+	margin-bottom: 0;
+}
+
+.enquiry-thanks a {
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+@media only screen and (min-width: 576px) {
+	.enquiry-choice-grid {
+		grid-template-columns: 1fr 1fr;
+	}
+}

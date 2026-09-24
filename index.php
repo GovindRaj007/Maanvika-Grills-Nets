@@ -1,4 +1,4 @@
-<?php include 'enquiry-state.php'; ?>
+<?php require __DIR__ . '/core/bootstrap.php'; ?>
 <!DOCTYPE html>
 <html lang="en-IN">
 
@@ -376,7 +376,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- ============================================================
      ENQUIRY FORM - sits directly under the hero
      ============================================================ -->
-<?php $enquiryFormSource = 'Home Page'; include 'enquiry-form.php'; ?>
+<?php include 'enquiry-form.php'; ?>
 
 
 <!-- ============================================================

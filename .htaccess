@@ -25,6 +25,16 @@ DirectoryIndex index.php index.html
 </IfModule>
 
 # ------------------------------------------------------------
+#  Retired URLs
+#  The enquiry form used to redirect to /thank-you.php and post to
+#  /form-to-email-contact.php. Both are gone - the thank-you message now
+#  shows on the form page itself - so send any old link or bookmark to the
+#  contact page instead of a 404.
+# ------------------------------------------------------------
+Redirect 301 /thank-you.php /contact.php
+Redirect 301 /form-to-email-contact.php /contact.php
+
+# ------------------------------------------------------------
 #  Error pages
 # ------------------------------------------------------------
 ErrorDocument 404 /404.php
@@ -43,9 +53,16 @@ ErrorDocument 404 /404.php
     Require all denied
 </Files>
 
-# The SMTP password lives in mail-config.php. PHP includes read it from disk,
-# so blocking web access costs nothing and keeps it out of reach if the server
-# ever stops executing PHP (a bad deploy, a config slip) and serves it as text.
+# Internal folders. Nothing in them is meant to be fetched over the web: the
+# config holds the SMTP password, core holds the helpers, and actions holds the
+# handler that the form posts to. PHP reads them from disk, so denying browser
+# access costs nothing and keeps them out of reach if the server ever stops
+# executing PHP (a bad deploy, a config slip) and serves them as plain text.
+#
+# actions/ is the one exception: the form has to be able to post to it.
+RedirectMatch 404 ^/(config|core|data|partials|templates|tools)(/.*)?$
+
+# The SMTP password lives in mail-config.php wherever it is installed.
 <FilesMatch "^(mail-config|mail-config\.sample|mailer)\.php$">
     Require all denied
 </FilesMatch>
@@ -53,7 +70,7 @@ ErrorDocument 404 /404.php
 # Page fragments pulled in by include; on their own they render a broken
 # fragment or nothing at all. PHP includes read them from disk, so denying
 # web access does not affect the pages that use them.
-<FilesMatch "^(header|footer|side-bar|enquiry-form|enquiry-state|gallery-data|service-photos|brand)\.php$">
+<FilesMatch "^(header|footer|side-bar|enquiry-form|gallery-data|service-photos|brand)\.php$">
     Require all denied
 </FilesMatch>
 

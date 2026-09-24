@@ -1,6 +1,12 @@
 <?php
 /**
- * SMTP settings for the enquiry form — TEMPLATE ONLY.
+ * OPTIONAL SMTP settings — TEMPLATE ONLY.
+ *
+ * THE FORM DOES NOT NEED THIS FILE. It sends with PHP mail(), which needs no
+ * password and no configuration beyond MAIL_FROM in config/site.php.
+ *
+ * This exists only as a fallback for a host where mail() cannot deliver at
+ * all. If mail() works, leave this file alone and never create mail-config.php.
  *
  * ###########################################################################
  * #  DO NOT PUT THE PASSWORD IN THIS FILE.                                  #
@@ -51,6 +57,12 @@
  * ---------------------------------------------------------------------------
  * To go back to PHP's mail() for any reason, set 'enabled' => false.
  */
+
+// Refuses to run unless an entry point pulled it in.
+if (!defined('ROOT_DIR')) {
+    http_response_code(403);
+    exit('Forbidden');
+}
 
 return [
     // Marks this as the template. smtp_config() refuses any config carrying
