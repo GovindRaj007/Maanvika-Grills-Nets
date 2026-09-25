@@ -7611,29 +7611,8 @@ body.is-menu-open {
 	border-color: #b3261e;
 }
 
-.enquiry-choices {
-	border: 0;
-	padding: 0;
-	margin: 0 0 18px;
-	min-width: 0;
-}
-
-.enquiry-choices legend {
-	display: block;
-	float: none;
-	width: auto;
-	font-size: 14px;
-	font-weight: 600;
-	margin-bottom: 8px;
-	color: #2b2b2b;
-}
-
-.enquiry-choice-grid {
-	display: grid;
-	grid-template-columns: 1fr;
-	gap: 8px 16px;
-}
-
+/* The consent tick box: checkbox and its wording on one line, the label text
+   wrapping under itself rather than under the box. */
 .enquiry-choice {
 	display: flex;
 	align-items: flex-start;
@@ -7646,7 +7625,7 @@ body.is-menu-open {
 
 .enquiry-choice input {
 	width: auto;
-	/* 18px keeps the tap target usable without knocking the label out of line. */
+	/* 18px keeps the tap target usable without pushing the label out of line. */
 	min-width: 18px;
 	height: 18px;
 	margin-top: 2px;
@@ -7679,8 +7658,3 @@ body.is-menu-open {
 	white-space: nowrap;
 }
 
-@media only screen and (min-width: 576px) {
-	.enquiry-choice-grid {
-		grid-template-columns: 1fr 1fr;
-	}
-}

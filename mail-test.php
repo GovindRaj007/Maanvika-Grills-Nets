@@ -139,7 +139,39 @@ row('core/mailer.php (optional)', is_file(ROOT_DIR . '/core/mailer.php')
 ?>
 </table>
 
-<h2>2. Environment</h2>
+<h2>2. Enquiries received (saved on the server, whatever email does)</h2>
+<?php
+$log = ROOT_DIR . '/data/enquiries.log';
+
+if (!is_file($log)) {
+    $writable = is_dir(ROOT_DIR . '/data') && is_writable(ROOT_DIR . '/data');
+    echo '<div class="note"><strong>No enquiries recorded yet.</strong> Every submission is written here '
+       . '<em>before</em> the email is attempted. If you have submitted the form since uploading these files '
+       . 'and this is still empty, the form never reached the handler — which is a different problem from '
+       . 'mail delivery.<br><br>data/ folder: '
+       . ($writable ? 'present and writable.' : '<strong>missing or not writable — create it and give it write permission (755).</strong>')
+       . '</div>';
+} else {
+    $rows = array_filter(explode("\n", (string) file_get_contents($log)));
+    $rows = array_slice($rows, -25);
+    echo '<div class="note"><strong>' . count($rows) . ' enquiry(ies) recorded.</strong> '
+       . 'These reached the server safely. If they are not in the inbox, the form is working and only '
+       . 'delivery is failing — so no lead has been lost.</div>';
+    echo '<table>';
+    foreach (array_reverse($rows) as $line) {
+        $r = json_decode($line, true);
+        if (!is_array($r)) { continue; }
+        row(date('d M, g:i A', strtotime($r['at'] ?? 'now')),
+            ($r['name'] ?? '?') . ' — ' . ($r['phone'] ?? '?')
+            . (($r['email'] ?? '') !== '' ? ' — ' . $r['email'] : '')
+            . "\n" . ($r['service'] ?? '')
+            . (($r['message'] ?? '') !== '' ? "\n" . $r['message'] : ''));
+    }
+    echo '</table>';
+}
+?>
+
+<h2>3. Environment</h2>
 <table>
 <?php
 $disabled     = array_map('trim', explode(',', (string) ini_get('disable_functions')));
@@ -171,7 +203,7 @@ with no bounce, because the bounce had nowhere to go either. Sending as
 allowed to send as gmail.com, so the message may land in spam. Test it below.
 </div>
 
-<h2>3. Which sender does this host actually deliver?</h2>
+<h2>4. Which sender does this host actually deliver?</h2>
 <?php if (!$runSend): ?>
   <div class="note">
     This sends three messages to <code><?php echo e(RECIPIENT_INBOX); ?></code>, each from a different

@@ -158,21 +158,14 @@ if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
 }
 
 // Fixed choice: allowlisted against the config. An unknown value is dropped
-// outright — never echoed back into the page, never put in the email.
-$cityKey = (string) ($_POST['city'] ?? '');
-if (!array_key_exists($cityKey, CITIES)) {
-    $cityKey = '';
-    $errors['city'] = 'Please choose the area the work is in.';
-}
-
-// Checkbox group: intersect with the valid keys and require at least one.
-$postedServices = $_POST['services'] ?? [];
-if (!is_array($postedServices)) {
-    $postedServices = [$postedServices];
-}
-$serviceKeys = array_values(array_intersect(array_map('strval', $postedServices), array_keys(SERVICES)));
-if ($serviceKeys === []) {
-    $errors['services'] = 'Please choose at least one service.';
+// outright — never echoed back into the page, never put in the email. Posting
+// something that is not in the list is not a typo a visitor can make with the
+// dropdown, so it is treated as "nothing chosen" rather than given its own
+// wording.
+$serviceKey = (string) ($_POST['services'] ?? '');
+if (!array_key_exists($serviceKey, SERVICES)) {
+    $serviceKey = '';
+    $errors['services'] = 'Please choose the service you need.';
 }
 
 $message = str_cap(trim((string) ($_POST['message'] ?? '')), MAX_MESSAGE);
@@ -190,19 +183,13 @@ $consent = isset($_POST['consent']) && (string) $_POST['consent'] !== '';
  */
 function collect_old()
 {
-    $postedServices = $_POST['services'] ?? [];
-    if (!is_array($postedServices)) {
-        $postedServices = [$postedServices];
-    }
-
-    $city = (string) ($_POST['city'] ?? '');
+    $service = (string) ($_POST['services'] ?? '');
 
     return [
         'name'     => header_safe(str_cap(trim((string) ($_POST['name'] ?? '')), MAX_NAME)),
         'phone'    => str_cap(trim((string) ($_POST['phone'] ?? '')), 20),
         'email'    => header_safe(str_cap(trim((string) ($_POST['email'] ?? '')), MAX_EMAIL)),
-        'city'     => array_key_exists($city, CITIES) ? $city : '',
-        'services' => array_values(array_intersect(array_map('strval', $postedServices), array_keys(SERVICES))),
+        'services' => array_key_exists($service, SERVICES) ? $service : '',
         'message'  => str_cap(trim((string) ($_POST['message'] ?? '')), MAX_MESSAGE),
         'consent'  => isset($_POST['consent']) ? '1' : '',
     ];
@@ -218,19 +205,45 @@ if ($errors !== []) {
 }
 
 // ---------------------------------------------------------------------------
+// 4b. Record the enquiry before trying to send it
+//
+// mail() reports success as soon as the local mail program takes the message,
+// which says nothing about delivery — that is exactly how enquiries have gone
+// missing here. Writing the lead to disk first means a delivery problem costs
+// a phone call's delay, never the enquiry itself.
+//
+// data/ is blocked in .htaccess and carries its own deny rule, so the file is
+// not reachable over the web even though it sits inside the site folder.
+// ---------------------------------------------------------------------------
+
+$record = [
+    'at'      => date('c'),
+    'name'    => $name,
+    'phone'   => $phone,
+    'email'   => $email,
+    'service' => SERVICES[$serviceKey] ?? '',
+    'message' => $message,
+    'consent' => $consent ? 'yes' : 'no',
+    'source'  => form_page_path(),
+    'ip'      => $_SERVER['REMOTE_ADDR'] ?? '',
+];
+
+@file_put_contents(
+    ROOT_DIR . '/data/enquiries.log',
+    json_encode($record, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL,
+    FILE_APPEND | LOCK_EX
+);
+
+// ---------------------------------------------------------------------------
 // 5. Compose
 // ---------------------------------------------------------------------------
 
-$cityLabel     = CITIES[$cityKey];
-$serviceLabels = [];
-foreach ($serviceKeys as $key) {
-    $serviceLabels[] = SERVICES[$key];
-}
+$serviceLabel = SERVICES[$serviceKey];
 
 $sourcePath = BASE_URL . form_page_path();
 $submitted  = date('d M Y, g:i A');
 
-$subject = header_safe('New enquiry - ' . $name . ' - ' . $cityLabel);
+$subject = header_safe('New enquiry - ' . $name . ' - ' . $serviceLabel);
 
 $lines = [
     'New enquiry from the ' . SITE_NAME . ' website',
@@ -243,8 +256,7 @@ if ($email !== '') {
     $lines[] = 'Email    : ' . $email;
 }
 
-$lines[] = 'Area     : ' . $cityLabel;
-$lines[] = 'Services : ' . implode(', ', $serviceLabels);
+$lines[] = 'Service  : ' . $serviceLabel;
 
 if ($message !== '') {
     $lines[] = '';

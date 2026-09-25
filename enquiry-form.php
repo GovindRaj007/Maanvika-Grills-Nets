@@ -32,11 +32,6 @@ $oldValue = static function ($field) use ($old) {
     return e((string) ($old[$field] ?? ''));
 };
 
-/** Was this service ticked last time? */
-$wasChosen = static function ($key) use ($old) {
-    return in_array($key, (array) ($old['services'] ?? []), true);
-};
-
 /** The message for one field, if it has one. */
 $errorFor = static function ($field) use ($fieldError) {
     return isset($fieldError[$field]) ? (string) $fieldError[$field] : '';
@@ -122,36 +117,18 @@ $errorFor = static function ($field) use ($fieldError) {
 
             <div class="col-md-6">
               <div class="enquiry-field">
-                <label for="enq-city">Area <span aria-hidden="true">*</span></label>
-                <select id="enq-city" name="city"
-                        <?php echo $errorFor('city') !== '' ? 'aria-invalid="true" aria-describedby="err-city"' : ''; ?>>
-                  <option value="">Select your area</option>
-                  <?php foreach (CITIES as $key => $label): ?>
-                    <option value="<?php echo e($key); ?>"<?php echo ($old['city'] ?? '') === $key ? ' selected' : ''; ?>><?php echo e($label); ?></option>
+                <label for="enq-service">Service needed <span aria-hidden="true">*</span></label>
+                <select id="enq-service" name="services"
+                        <?php echo $errorFor('services') !== '' ? 'aria-invalid="true" aria-describedby="err-services"' : ''; ?>>
+                  <option value="">Select a service</option>
+                  <?php foreach (SERVICES as $key => $label): ?>
+                    <option value="<?php echo e($key); ?>"<?php echo ($old['services'] ?? '') === $key ? ' selected' : ''; ?>><?php echo e($label); ?></option>
                   <?php endforeach; ?>
                 </select>
-                <?php if ($errorFor('city') !== ''): ?>
-                  <p class="enquiry-error" id="err-city"><?php echo e($errorFor('city')); ?></p>
-                <?php endif; ?>
-              </div>
-            </div>
-
-            <div class="col-12">
-              <fieldset class="enquiry-field enquiry-choices"
-                        <?php echo $errorFor('services') !== '' ? 'aria-describedby="err-services"' : ''; ?>>
-                <legend>What do you need? <span aria-hidden="true">*</span></legend>
-                <div class="enquiry-choice-grid">
-                  <?php foreach (SERVICES as $key => $label): ?>
-                    <label class="enquiry-choice">
-                      <input type="checkbox" name="services[]" value="<?php echo e($key); ?>"<?php echo $wasChosen($key) ? ' checked' : ''; ?>>
-                      <span><?php echo e($label); ?></span>
-                    </label>
-                  <?php endforeach; ?>
-                </div>
                 <?php if ($errorFor('services') !== ''): ?>
                   <p class="enquiry-error" id="err-services"><?php echo e($errorFor('services')); ?></p>
                 <?php endif; ?>
-              </fieldset>
+              </div>
             </div>
 
             <div class="col-12">

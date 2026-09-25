@@ -99,26 +99,6 @@ const FORM_PAGES = [
 
 const FORM_ANCHOR = '#enquiry';
 
-/**
- * Areas we cover. The key is what the form posts and what the handler checks
- * against; the label is what people see and what the email shows.
- */
-const CITIES = [
-    'anna-nagar'   => 'Anna Nagar',
-    'ambattur'     => 'Ambattur',
-    'adyar'        => 'Adyar',
-    'chromepet'    => 'Chromepet',
-    'guindy'       => 'Guindy',
-    'mogappair'    => 'Mogappair',
-    'omr'          => 'OMR / Sholinganallur',
-    'perambur'     => 'Perambur',
-    'porur'        => 'Porur',
-    't-nagar'      => 'T. Nagar',
-    'tambaram'     => 'Tambaram',
-    'velachery'    => 'Velachery',
-    'other'        => 'Somewhere else in Chennai',
-];
-
 /** Services offered. Same arrangement: key is posted, label is displayed. */
 const SERVICES = [
     'balcony-safety-nets'   => 'Balcony Safety Nets',
