@@ -194,13 +194,14 @@ row('Server software', $_SERVER['SERVER_SOFTWARE'] ?? 'unknown');
 </table>
 
 <div class="note">
-<strong>Why the form sends from a Gmail address.</strong>
-There is no mailbox on this domain, so the sender has to be one that genuinely exists. The previous
-setting, <code>no-reply@<?php echo e(SITE_DOMAIN); ?></code>, was never created in the hosting panel:
-the server accepted each enquiry, found it came from an address it did not own, and dropped it &mdash;
-with no bounce, because the bounce had nowhere to go either. Sending as
-<code><?php echo e(MAIL_FROM); ?></code> works today, but Gmail cannot verify that this web server is
-allowed to send as gmail.com, so the message may land in spam. Test it below.
+<strong>Why the form sends from <?php echo e(MAIL_FROM); ?>.</strong>
+This host relays mail only for domains the hosting account owns. Sending as
+<code><?php echo e(RECIPIENT_INBOX); ?></code> was tested from this very page and never arrived: the
+local mail program accepted it, then discarded it, because this server has no authority to send as
+gmail.com &mdash; and no bounce came back, which is why enquiries disappeared silently. The domain
+address delivers, and it does <em>not</em> need a mailbox behind it: a mailbox is what receives mail,
+while sending only requires that the domain belongs to this account. Enquiries are still read in
+<code><?php echo e(RECIPIENT_INBOX); ?></code>, and replies still go to the customer via Reply-To.
 </div>
 
 <h2>4. Which sender does this host actually deliver?</h2>
@@ -210,12 +211,11 @@ allowed to send as gmail.com, so the message may land in spam. Test it below.
     sender. Afterwards check the inbox <strong>and the spam folder</strong> and note which ones arrived:
     <ol>
       <li><strong>A</strong> &mdash; from <code><?php echo e(MAIL_FROM); ?></code> with the envelope sender set.
-          This is exactly what the form does now.</li>
-      <li><strong>B</strong> &mdash; the same sender without the envelope argument, in case this host
-          rejects it.</li>
-      <li><strong>C</strong> &mdash; from <code>no-reply@<?php echo e(SITE_DOMAIN); ?></code>, which has no
-          mailbox behind it. This is the setting that was failing, kept here only so you can see the
-          difference for yourself.</li>
+          This is exactly what the form does, and the combination already proven to arrive.</li>
+      <li><strong>B</strong> &mdash; the same sender without the envelope argument.</li>
+      <li><strong>C</strong> &mdash; from <code><?php echo e(RECIPIENT_INBOX); ?></code>. This one is
+          expected to <em>fail</em>: the host will not relay mail claiming to come from gmail.com. It is
+          here as the control that proves the sender is what matters.</li>
     </ol>
   </div>
   <a class="btn" href="?key=<?php echo urlencode(DIAG_KEY); ?>&amp;send=1">Send the three test emails</a>
@@ -223,7 +223,7 @@ allowed to send as gmail.com, so the message may land in spam. Test it below.
     $tests = [
         'A' => try_send('TEST A', MAIL_FROM, true),
         'B' => try_send('TEST B', MAIL_FROM, false),
-        'C' => try_send('TEST C', 'no-reply@' . SITE_DOMAIN, true),
+        'C' => try_send('TEST C', RECIPIENT_INBOX, true),
     ];
 ?>
   <table>
@@ -235,21 +235,17 @@ allowed to send as gmail.com, so the message may land in spam. Test it below.
       } ?>
   </table>
   <div class="note">
-    <strong>Now check the inbox and the spam folder, then read the result like this.</strong><br><br>
-    &bull; <em>A arrives (inbox or spam)</em> &rarr; the form will deliver. If it was in spam, open it and
-      press <strong>Not spam</strong>; that trains the filter for future enquiries.<br>
-    &bull; <em>A does not arrive but B does</em> &rarr; this host rejects the <code>-f</code> argument.
+    <strong>Now check the inbox. The expected result is A arrives and C does not.</strong><br><br>
+    &bull; <em>A arrives</em> &rarr; the form will deliver. Nothing further to do.<br>
+    &bull; <em>A does not arrive but B does</em> &rarr; this host dislikes the <code>-f</code> argument.
       Tell me and I will drop it.<br>
-    &bull; <em>C arrives but A does not</em> &rarr; the opposite of what we expect; tell me and I will switch
-      the sender back to the domain.<br>
-    &bull; <em>All three accepted but none arrive</em> &rarr; the host is not delivering outbound mail at all.
-      That is a support ticket, not a code change &mdash; ask them to confirm PHP <code>mail()</code> is
-      enabled and not blocked for this account.<br><br>
-    <strong>Either way, the permanent fix is ten minutes in cPanel:</strong> create
-    <code>no-reply@<?php echo e(SITE_DOMAIN); ?></code> under Email Accounts (free with the hosting, nothing
-    needs to log in to it), confirm the domain has an SPF record, then change <code>MAIL_FROM</code> in
-    <code>config/site.php</code> to that address. Enquiries then land in the inbox every time instead of
-    depending on how Gmail feels about an unverified sender.
+    &bull; <em>Neither A nor B arrives</em> &rarr; something changed on the hosting side, because this
+      sender was delivering. Check with the host that outbound mail for the domain is still enabled.<br>
+    &bull; <em>C arrives too</em> &rarr; harmless; the host has become more permissive. The form's own
+      sender is still the right one to use.<br><br>
+    Remember that <code>mail()</code> reporting "accepted" means only that the local mail program took
+    the message. The inbox is the only real test &mdash; that distinction is what made this problem so
+    hard to see.
   </div>
 <?php endif; ?>
 

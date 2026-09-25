@@ -28,31 +28,33 @@ const RECIPIENT_INBOX = 'maanvikasafetysolutions@gmail.com';
 /**
  * Who the enquiry mail is sent from.
  *
- * This is the Gmail address because it is the only mailbox this business
- * actually has. There is no email account on the domain.
+ * DO NOT change this to the Gmail address. It has been tested on this host and
+ * it does not work.
  *
- * That matters, because a sender address has to exist somewhere for mail to
- * behave. An earlier setting here was no-reply@<the domain>, which was never
- * created in the hosting panel: the mail server accepted each enquiry, found
- * it was sent from an address it did not own, and dropped it. Nothing reached
- * the inbox and no bounce came back, because the address the bounce was
- * addressed to did not exist either.
+ * This server sends through /usr/sbin/hsendmail, which relays only for domains
+ * the hosting account owns. Three identical messages were sent from the live
+ * site to prove it:
  *
- * The trade-off of using the Gmail address: the message leaves this web server
- * while claiming to come from gmail.com, which Gmail cannot verify, so it may
- * be filed as spam even though it arrives. Check the spam folder after the
- * first live test, and mark it "not spam" if it is there — that teaches the
- * filter for subsequent enquiries.
+ *   From maanvikasafetysolutions@gmail.com, envelope set   -> never arrived
+ *   From maanvikasafetysolutions@gmail.com, no envelope    -> never arrived
+ *   From no-reply@maanvikasafetynetschennai.com            -> arrived
  *
- * THE BETTER SETUP, when there is ten minutes to spare:
- *   1. In cPanel → Email Accounts, create no-reply@maanvikasafetynetschennai.com
- *      (included free with the hosting; nothing ever has to log in to it).
- *   2. In the DNS panel, confirm the domain has an SPF record naming this host.
- *   3. Change the line below to 'no-reply@' . SITE_DOMAIN.
- * Mail then passes every check and lands in the inbox reliably. Nothing else
- * in the code needs to change — this one constant is the whole switch.
+ * All three were "accepted" by the mail program. Only the third was delivered.
+ * A message claiming to come from gmail.com is taken by the local queue and
+ * then dropped, because this server has no authority to send as gmail.com —
+ * and no bounce comes back, which is why enquiries vanished with no error
+ * anywhere.
+ *
+ * This address does not need a mailbox behind it. A mailbox is what receives
+ * mail; sending only requires that the domain belongs to this hosting account,
+ * which it does. Replies go to the visitor via Reply-To, and enquiries are read
+ * in the Gmail inbox named in RECIPIENT_INBOX above.
+ *
+ * Optional polish, not required for delivery: create no-reply@ as a real
+ * mailbox in the hosting panel and forward it to the Gmail address. Bounces and
+ * out-of-office replies would then be visible instead of disappearing.
  */
-const MAIL_FROM = RECIPIENT_INBOX;
+const MAIL_FROM = 'no-reply@' . SITE_DOMAIN;
 
 // Phone shown to visitors when something goes wrong.
 const SITE_PHONE         = '+91 95814 31299';

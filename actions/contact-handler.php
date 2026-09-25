@@ -326,11 +326,10 @@ if (SITE_ENV === 'development') {
     // PHP's own mail(). This is the delivery method: no password, no library,
     // nothing to configure beyond MAIL_FROM in config/site.php.
     //
-    // MAIL_FROM has to be an address that genuinely exists, which is why it is
-    // the Gmail address rather than one on this domain: a sender the mail
-    // system does not recognise is what gets a message accepted locally and
-    // then dropped on the way out, with the bounce going nowhere. See the note
-    // on MAIL_FROM in config/site.php for the better long-term setup.
+    // MAIL_FROM must stay an address on this site's own domain. This host only
+    // relays for domains it owns, so a message sent as anything else — the
+    // business Gmail address included — is accepted by the local queue and then
+    // quietly discarded. config/site.php records the test that established it.
     //
     // The '-f' argument sets the envelope sender, the address the receiving
     // server checks against the sending domain's SPF record. Without it the
