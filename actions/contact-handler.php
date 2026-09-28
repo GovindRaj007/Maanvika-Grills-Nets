@@ -281,12 +281,30 @@ if ($message !== '') {
 // send test enquiries to the live inbox or divert live ones into a file.
 // ---------------------------------------------------------------------------
 
-$sent       = false;
-$sendError  = '';
-$sendDetail = ['transport' => '', 'status' => 0, 'message' => ''];
+// The enquiry is already on disk, so from here on nothing can lose it.
+@file_put_contents(
+    ROOT_DIR . '/data/delivery.log',
+    json_encode([
+        'at'     => date('c'),
+        'result' => SITE_ENV === 'development' ? 'written to file (development)' : 'relayed to Web3Forms',
+        'name'   => $name,
+        'phone'  => $phone,
+        'saved'  => $logged ? 'yes' : 'NO',
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL,
+    FILE_APPEND | LOCK_EX
+);
+
+// A completed submission starts the cooldown. It is set before handing over
+// because the browser leaves this script for Web3Forms and does not come back
+// through it.
+if (session_boot()) {
+    $_SESSION['last_submit'] = time();
+}
 
 if (SITE_ENV === 'development') {
-    // Written outside the web root: it holds a customer's name and number.
+    // Nothing is sent from a development machine. The message is written where
+    // it can be read instead — outside the web root, since it holds a
+    // customer's name and number.
     $dump = sys_get_temp_dir() . '/enquiry-' . date('Ymd-His') . '-' . bin2hex(random_bytes(3)) . '.txt';
 
     $readable = '';
@@ -294,77 +312,21 @@ if (SITE_ENV === 'development') {
         $readable .= str_pad($label, 12) . ': ' . $value . PHP_EOL;
     }
 
-    $sent = (bool) @file_put_contents($dump, $readable);
-
-    if (!$sent) {
-        $sendError = 'Could not write the development copy to ' . $dump;
+    if (!@file_put_contents($dump, $readable)) {
+        error_log('Could not write the development copy to ' . $dump);
     }
-} else {
-    $sent = web3forms_send($fields, $sendError, $sendDetail);
-}
-// ---------------------------------------------------------------------------
-// 7. Result
-// ---------------------------------------------------------------------------
 
-// Record EVERY attempt, not only the failures.
-//
-// A success line matters as much as a failure one: if Web3Forms keeps replying
-// "accepted" and nothing reaches the inbox, the fault is at their end — almost
-// always a form whose email address has never been confirmed — and without a
-// log of the accepted sends there is no way to tell that apart from the site
-// never having sent anything.
-//
-// PHP wraps its own error text in HTML when html_errors is on, which turns any
-// quotes in a message into entities; strip that so the reason stays readable
-// whatever the host's settings are.
-$clean = static function ($text) {
-    return trim(preg_replace('/\s+/', ' ', strip_tags(html_entity_decode((string) $text, ENT_QUOTES, 'UTF-8'))));
-};
-
-@file_put_contents(
-    ROOT_DIR . '/data/delivery.log',
-    json_encode([
-        'at'        => date('c'),
-        'result'    => $sent ? 'accepted' : 'failed',
-        'name'      => $name,
-        'phone'     => $phone,
-        'saved'     => $logged ? 'yes' : 'NO',
-        'transport' => $sendDetail['transport'] ?? '',
-        'status'    => $sendDetail['status'] ?? 0,
-        'service'   => $clean($sendDetail['message'] ?? ''),
-        'reason'    => $sent ? '' : $clean($sendError !== '' ? $sendError : 'no reason given'),
-    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL,
-    FILE_APPEND | LOCK_EX
-);
-
-if (!$sent) {
-    error_log('Enquiry delivery failed for ' . $phone . ': ' . $clean($sendError));
+    back_to_form('sent=1');
 }
 
-// Two different failures, told apart deliberately.
-//
-// If the email did not go out but the enquiry is saved on the server, the
-// visitor has not lost anything: their name and number are on file and the
-// business can ring them. Telling them "we could not send it, please phone us"
-// in that situation is both untrue and a good way to lose the job, so they get
-// the ordinary thank-you and the owner sees the unsent lead in form-check.php.
-//
-// Only when the enquiry could not even be recorded is there really nothing to
-// act on, and that is the one case worth asking somebody to pick up the phone.
-if (!$sent && !$logged) {
-    fail_with(
-        'mail',
-        'Your enquiry could not be sent just now. Please call us on ' . SITE_PHONE
-            . ' and we will take the details over the phone.',
-        [],
-        collect_old()
-    );
+// If the enquiry could not even be recorded AND we are about to hand it to a
+// third party, there is no copy anywhere. Say so rather than risk losing it
+// silently; every other case is safe because the lead is on disk.
+if (!$logged) {
+    error_log('Enquiry could not be written to data/enquiries.log - check the folder is writable');
 }
 
-// Only a completed submission starts the cooldown, so a failure never locks the
-// visitor out of trying again.
-if (session_boot()) {
-    $_SESSION['last_submit'] = time();
-}
-
-back_to_form('sent=1');
+// Hand over to the browser, which posts the fields on to Web3Forms and is then
+// returned to the thank-you message on the page it started from. This call ends
+// the request.
+web3forms_relay($fields, BASE_URL . form_page_path() . '?sent=1' . FORM_ANCHOR);
