@@ -62,11 +62,6 @@ ErrorDocument 404 /404.php
 # actions/ is the one exception: the form has to be able to post to it.
 RedirectMatch 404 ^/(config|core|data|partials|templates|tools)(/.*)?$
 
-# The SMTP password lives in mail-config.php wherever it is installed.
-<FilesMatch "^(mail-config|mail-config\.sample|mailer)\.php$">
-    Require all denied
-</FilesMatch>
-
 # Page fragments pulled in by include; on their own they render a broken
 # fragment or nothing at all. PHP includes read them from disk, so denying
 # web access does not affect the pages that use them.

@@ -22,39 +22,28 @@ const SITE_DOMAIN = 'maanvikasafetynetschennai.com';
 const BASE_URL  = 'https://' . SITE_DOMAIN;
 const SITE_NAME = 'Maanvika Grills & Nets';
 
-// Where enquiries are read.
+// Where enquiries are read. Recorded here for reference only: the destination
+// is set against the access key in the Web3Forms dashboard, not by this site.
 const RECIPIENT_INBOX = 'maanvikasafetysolutions@gmail.com';
 
 /**
- * Who the enquiry mail is sent from.
+ * Web3Forms access key.
  *
- * DO NOT change this to the Gmail address. It has been tested on this host and
- * it does not work.
+ * Enquiries are delivered by Web3Forms, not by this server. The form posts to
+ * their API over HTTPS and they do the emailing, so delivery no longer depends
+ * on the host's mail setup — which is what kept failing: PHP's mail() shares a
+ * queue with every other site on the server, caps how much it will send in an
+ * hour, and gives no way to find out what became of a message.
  *
- * This server sends through /usr/sbin/hsendmail, which relays only for domains
- * the hosting account owns. Three identical messages were sent from the live
- * site to prove it:
+ * The key belongs to whichever address was verified when the form was created
+ * in the Web3Forms dashboard; that is where enquiries arrive. To change the
+ * destination, change it there — nothing here needs editing.
  *
- *   From maanvikasafetysolutions@gmail.com, envelope set   -> never arrived
- *   From maanvikasafetysolutions@gmail.com, no envelope    -> never arrived
- *   From no-reply@maanvikasafetynetschennai.com            -> arrived
- *
- * All three were "accepted" by the mail program. Only the third was delivered.
- * A message claiming to come from gmail.com is taken by the local queue and
- * then dropped, because this server has no authority to send as gmail.com —
- * and no bounce comes back, which is why enquiries vanished with no error
- * anywhere.
- *
- * This address does not need a mailbox behind it. A mailbox is what receives
- * mail; sending only requires that the domain belongs to this hosting account,
- * which it does. Replies go to the visitor via Reply-To, and enquiries are read
- * in the Gmail inbox named in RECIPIENT_INBOX above.
- *
- * Optional polish, not required for delivery: create no-reply@ as a real
- * mailbox in the hosting panel and forward it to the Gmail address. Bounces and
- * out-of-office replies would then be visible instead of disappearing.
+ * The key is not a password. It identifies the form, and Web3Forms treats it as
+ * public (their own examples put it in the page source). This site posts from
+ * the server instead, so it never appears in the page at all.
  */
-const MAIL_FROM = 'no-reply@' . SITE_DOMAIN;
+const WEB3FORMS_ACCESS_KEY = '0b7caae7-8d85-4d99-8f1a-301799ac64c8';
 
 // Phone shown to visitors when something goes wrong.
 const SITE_PHONE         = '+91 95814 31299';

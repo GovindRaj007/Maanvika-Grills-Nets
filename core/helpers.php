@@ -99,10 +99,10 @@ function flash_get($key, $default = null)
 /**
  * Strip anything that could break out of a mail header.
  *
- * mail() drops the subject straight into a header and sanitises nothing, so a
- * line break in a submitted value would let an attacker append their own Bcc:
- * and turn the form into an open relay. CR, LF and NUL become spaces before
- * any value reaches a header line.
+ * Values such as the subject and the reply-to address end up in real mail
+ * headers once the delivery service builds the notification, and a line break
+ * in a header is how a message acquires extra recipients. CR, LF and NUL become
+ * spaces before any value can get that far.
  */
 function header_safe($value)
 {
@@ -129,25 +129,6 @@ function str_cap($value, $limit)
 function e($value)
 {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
-}
-
-/**
- * MIME-encode a header value so non-ASCII text survives.
- *
- * A Tamil name in a Subject: line arrives as mojibake without this.
- */
-function mime_header($value)
-{
-    $value = header_safe($value);
-
-    if (preg_match('//u', $value) !== 1) {
-        // Not valid UTF-8; drop the high bytes rather than send broken base64.
-        $value = preg_replace('/[\x80-\xFF]/', '', $value);
-    }
-
-    return preg_match('/[\x80-\xFF]/', $value)
-        ? '=?UTF-8?B?' . base64_encode($value) . '?='
-        : $value;
 }
 
 /**

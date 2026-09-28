@@ -17,12 +17,7 @@ require_once ROOT_DIR . '/config/site.php';
 require_once ROOT_DIR . '/core/helpers.php';
 require_once ROOT_DIR . '/core/csrf.php';
 
-// Optional. The form sends with PHP's mail() and needs nothing else; this file
-// only adds an SMTP fallback for a host where mail() cannot deliver. Loading it
-// conditionally means the form still works if it was never uploaded.
-if (is_file(ROOT_DIR . '/core/mailer.php')) {
-    require_once ROOT_DIR . '/core/mailer.php';
-}
+require_once ROOT_DIR . '/core/web3forms.php';
 
 // Never print notices into the response: any output before the redirect would
 // turn header() into a "headers already sent" error and strand the visitor on
@@ -207,10 +202,10 @@ if ($errors !== []) {
 // ---------------------------------------------------------------------------
 // 4b. Record the enquiry before trying to send it
 //
-// mail() reports success as soon as the local mail program takes the message,
-// which says nothing about delivery — that is exactly how enquiries have gone
-// missing here. Writing the lead to disk first means a delivery problem costs
-// a phone call's delay, never the enquiry itself.
+// Delivery goes over the network to another service, so it can fail for reasons
+// that have nothing to do with this site: an outage, a DNS hiccup, a blocked
+// outbound connection. Writing the lead to disk first means any of those costs
+// a delay in noticing, never the enquiry itself.
 //
 // data/ is blocked in .htaccess and carries its own deny rule, so the file is
 // not reachable over the web even though it sits inside the site folder.
@@ -228,7 +223,10 @@ $record = [
     'ip'      => $_SERVER['REMOTE_ADDR'] ?? '',
 ];
 
-@file_put_contents(
+// $logged decides what the visitor is told if the email fails: with the lead
+// safely on disk there is nothing to apologise for, because the business can
+// still call them back.
+$logged = (bool) @file_put_contents(
     ROOT_DIR . '/data/enquiries.log',
     json_encode($record, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL,
     FILE_APPEND | LOCK_EX
@@ -240,146 +238,110 @@ $record = [
 
 $serviceLabel = SERVICES[$serviceKey];
 
-$sourcePath = BASE_URL . form_page_path();
-$submitted  = date('d M Y, g:i A');
+$submitted = date('d M Y, g:i A');
 
-$subject = header_safe('New enquiry - ' . $name . ' - ' . $serviceLabel);
+// The fields Web3Forms shows in the email. Keys are written the way they should
+// read in the inbox, because anything that is not one of their reserved names
+// becomes a labelled line in the message.
+//
+// header_safe() still strips CR, LF and NUL from every value. JSON would escape
+// them safely, but the subject and reply-to end up in real mail headers at the
+// far end, and a line break there is how a message gets extra recipients.
+$fields = [
+    'access_key' => WEB3FORMS_ACCESS_KEY,
+    'subject'    => header_safe('New enquiry - ' . $name . ' - ' . $serviceLabel),
+    'from_name'  => SITE_NAME . ' Website',
 
-$lines = [
-    'New enquiry from the ' . SITE_NAME . ' website',
-    '',
-    'Name     : ' . $name,
-    'Phone    : ' . $phone,
+    'Name'      => $name,
+    'Phone'     => '+91' . $phone,
+    'Service'   => $serviceLabel,
+    'Consent'   => $consent
+        ? 'Yes - ticked the box agreeing to be contacted'
+        : 'Not ticked (the box is optional; they still asked for a call back)',
+    'Sent from' => BASE_URL . form_page_path(),
+    'Received'  => $submitted . ' (IST)',
 ];
 
+// Only include what the visitor actually gave, so the email has no blank rows.
 if ($email !== '') {
-    $lines[] = 'Email    : ' . $email;
+    $fields['Email'] = $email;
+    // Reply-To at the far end, so answering the notification answers the
+    // customer. Never invented: without an address there is nothing to reply to.
+    $fields['replyto'] = header_safe($email);
 }
-
-$lines[] = 'Service  : ' . $serviceLabel;
 
 if ($message !== '') {
-    $lines[] = '';
-    $lines[] = 'Message  :';
-    $lines[] = $message;
-    $lines[] = '';
+    $fields['Message'] = $message;
 }
-
-$lines[] = 'Consent  : ' . ($consent
-    ? 'Yes - ticked the box agreeing to be contacted'
-    : 'Not ticked (the box is optional; they still asked for a call back)');
-$lines[] = 'Sent from: ' . $sourcePath;
-$lines[] = 'Received : ' . $submitted . ' (IST)';
-$lines[] = '';
-$lines[] = 'Call back: +91' . $phone;
-
-$body = implode("\r\n", $lines) . "\r\n";
-
-$headers = [
-    'From: ' . mime_header(SITE_NAME) . ' <' . MAIL_FROM . '>',
-    'MIME-Version: 1.0',
-    'Content-Type: text/plain; charset=UTF-8',
-    'Content-Transfer-Encoding: 8bit',
-];
-
-// Reply-To only when the visitor actually gave an address. Inventing one would
-// mean replies vanishing into a mailbox nobody reads.
-if ($email !== '') {
-    $headers[] = 'Reply-To: ' . mime_header($name) . ' <' . $email . '>';
-}
-
-$encodedSubject = mime_header($subject);
 
 // ---------------------------------------------------------------------------
 // 6. Deliver
 //
 // Keyed on SITE_ENV, which comes from the SAPI, so a stale setting can never
-// divert live mail into a file or a test inbox.
-//
-// Production goes through an authenticated SMTP login when credentials are
-// installed. That is deliberate: on this host mail() reports success and then
-// delivers nothing, because the message leaves a server that our domain's SPF
-// record does not authorise, and Gmail discards it. Logging in to the mailbox
-// sends the message as that account, so there is nothing left to fail. mail()
-// stays as the fallback for a server where it does work.
+// send test enquiries to the live inbox or divert live ones into a file.
 // ---------------------------------------------------------------------------
 
 $sent      = false;
 $sendError = '';
 
 if (SITE_ENV === 'development') {
-    // Never under the web root: this file holds a customer's name and number.
+    // Written outside the web root: it holds a customer's name and number.
     $dump = sys_get_temp_dir() . '/enquiry-' . date('Ymd-His') . '-' . bin2hex(random_bytes(3)) . '.txt';
 
-    $sent = (bool) @file_put_contents(
-        $dump,
-        'To: ' . RECIPIENT_INBOX . "\r\n"
-        . 'Subject: ' . $encodedSubject . "\r\n"
-        . implode("\r\n", $headers) . "\r\n\r\n"
-        . $body
-    );
+    $readable = '';
+    foreach ($fields as $label => $value) {
+        $readable .= str_pad($label, 12) . ': ' . $value . PHP_EOL;
+    }
+
+    $sent = (bool) @file_put_contents($dump, $readable);
 
     if (!$sent) {
         $sendError = 'Could not write the development copy to ' . $dump;
     }
 } else {
-    // PHP's own mail(). This is the delivery method: no password, no library,
-    // nothing to configure beyond MAIL_FROM in config/site.php.
-    //
-    // MAIL_FROM must stay an address on this site's own domain. This host only
-    // relays for domains it owns, so a message sent as anything else — the
-    // business Gmail address included — is accepted by the local queue and then
-    // quietly discarded. config/site.php records the test that established it.
-    //
-    // The '-f' argument sets the envelope sender, the address the receiving
-    // server checks against the sending domain's SPF record. Without it the
-    // check runs against whatever default the host uses.
-    $before = error_get_last();
-
-    $sent = @mail(RECIPIENT_INBOX, $encodedSubject, $body, implode("\r\n", $headers), '-f' . MAIL_FROM);
-
-    if (!$sent) {
-        // A few hosts refuse the extra argument outright. Retry without it
-        // rather than lose the enquiry over a configuration detail.
-        $sent = @mail(RECIPIENT_INBOX, $encodedSubject, $body, implode("\r\n", $headers));
-    }
-
-    if (!$sent) {
-        $after     = error_get_last();
-        $sendError = ($after !== $before && isset($after['message']))
-            ? (string) $after['message']
-            : 'mail() returned false';
-
-        error_log('Enquiry mail() failed for ' . $phone . ': ' . $sendError);
-
-        // Optional last resort, used only if someone has installed SMTP
-        // credentials. Absent that file this block does nothing at all.
-        if (function_exists('smtp_config')) {
-            $smtp = smtp_config();
-
-            if (!empty($smtp['enabled']) && !empty($smtp['host']) && !empty($smtp['password'])) {
-                // The From: header has to match the account we log in as, or
-                // the provider rewrites it and the message looks forged.
-                $smtpHeaders    = $headers;
-                $smtpHeaders[0] = 'From: ' . mime_header((string) ($smtp['from_name'] ?? SITE_NAME))
-                    . ' <' . ($smtp['from'] ?? $smtp['username']) . '>';
-
-                $smtpError = '';
-                $sent = smtp_send($smtp, RECIPIENT_INBOX, $encodedSubject, $body, $smtpHeaders, $smtpError);
-
-                if (!$sent) {
-                    error_log('Enquiry SMTP fallback also failed: ' . $smtpError);
-                }
-            }
-        }
-    }
+    $sent = web3forms_send($fields, $sendError);
 }
-
 // ---------------------------------------------------------------------------
 // 7. Result
 // ---------------------------------------------------------------------------
 
 if (!$sent) {
+    // Write the reason somewhere the site owner can actually read it. error_log
+    // goes wherever the host decides, which on shared hosting is often nowhere
+    // findable; this file is what form-check.php displays.
+    //
+    // PHP wraps its own error text in HTML when html_errors is on, which turns
+    // any quotes in the message into entities. Strip that back out so the reason
+    // reads properly whatever the host's settings are.
+    $reason = $sendError !== '' ? $sendError : 'the send failed without giving a reason';
+    $reason = trim(preg_replace('/\s+/', ' ', strip_tags(html_entity_decode($reason, ENT_QUOTES, 'UTF-8'))));
+
+    @file_put_contents(
+        ROOT_DIR . '/data/send-errors.log',
+        json_encode([
+            'at'     => date('c'),
+            'name'   => $name,
+            'phone'  => $phone,
+            'reason' => $reason,
+            'saved'  => $logged ? 'yes' : 'NO',
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL,
+        FILE_APPEND | LOCK_EX
+    );
+
+    error_log('Enquiry delivery failed for ' . $phone . ': ' . $reason);
+}
+
+// Two different failures, told apart deliberately.
+//
+// If the email did not go out but the enquiry is saved on the server, the
+// visitor has not lost anything: their name and number are on file and the
+// business can ring them. Telling them "we could not send it, please phone us"
+// in that situation is both untrue and a good way to lose the job, so they get
+// the ordinary thank-you and the owner sees the unsent lead in form-check.php.
+//
+// Only when the enquiry could not even be recorded is there really nothing to
+// act on, and that is the one case worth asking somebody to pick up the phone.
+if (!$sent && !$logged) {
     fail_with(
         'mail',
         'Your enquiry could not be sent just now. Please call us on ' . SITE_PHONE
@@ -389,7 +351,7 @@ if (!$sent) {
     );
 }
 
-// Only a real send starts the cooldown, so a failed attempt never locks the
+// Only a completed submission starts the cooldown, so a failure never locks the
 // visitor out of trying again.
 if (session_boot()) {
     $_SESSION['last_submit'] = time();
