@@ -34,9 +34,14 @@ const WEB3FORMS_ENDPOINT = 'https://api.web3forms.com/submit';
  * Returns true when the service confirms it accepted the submission. On failure
  * $error holds a sentence naming what went wrong, for data/send-errors.log.
  */
-function web3forms_send(array $fields, &$error)
+function web3forms_send(array $fields, &$error, &$detail = null)
 {
     $error   = '';
+    // $detail is filled in on success as well as failure, so the site owner can
+    // tell "we never reached Web3Forms" apart from "Web3Forms accepted it and
+    // did not email me" — two completely different problems that otherwise look
+    // identical from the outside.
+    $detail  = ['transport' => '', 'status' => 0, 'message' => ''];
     $payload = json_encode($fields, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
     if ($payload === false) {
@@ -54,16 +59,20 @@ function web3forms_send(array $fields, &$error)
     // is loaded — without it the request would fail with an unhelpful "unable
     // to find the wrapper" message, so say what is actually wrong.
     if (function_exists('curl_init')) {
+        $detail['transport'] = 'cURL';
         [$ok, $status, $body, $transportError] = web3forms_post_curl($payload, $headers);
     } elseif (!filter_var(ini_get('allow_url_fopen'), FILTER_VALIDATE_BOOLEAN)) {
         $error = 'This server has neither cURL nor allow_url_fopen, so it cannot make outbound requests. '
                . 'Ask the host to enable the curl extension.';
+        $detail['transport'] = 'none';
         return false;
     } elseif (!extension_loaded('openssl') && stripos(WEB3FORMS_ENDPOINT, 'https://') === 0) {
         $error = 'This server has no cURL and no OpenSSL, so PHP cannot open an HTTPS connection. '
                . 'Ask the host to enable the curl extension (or openssl).';
+        $detail['transport'] = 'none';
         return false;
     } else {
+        $detail['transport'] = 'stream wrapper';
         [$ok, $status, $body, $transportError] = web3forms_post_stream($payload, $headers);
     }
 
@@ -75,14 +84,20 @@ function web3forms_send(array $fields, &$error)
 
     $decoded = json_decode((string) $body, true);
 
-    // A 200 with success:true is the only result worth treating as delivered.
-    if (is_array($decoded) && !empty($decoded['success'])) {
-        return true;
-    }
-
     $message = is_array($decoded) && isset($decoded['message'])
         ? (string) $decoded['message']
         : trim((string) $body);
+
+    $detail['status']  = $status;
+    $detail['message'] = $message;
+
+    // A 200 with success:true is the only result worth treating as delivered.
+    // Note what that does and does not prove: Web3Forms has taken charge of the
+    // message, not that it has reached the inbox. A brand-new form whose email
+    // address has never been confirmed returns exactly this and sends nothing.
+    if (is_array($decoded) && !empty($decoded['success'])) {
+        return true;
+    }
 
     $error = 'Web3Forms rejected the submission (HTTP ' . $status . ')'
            . ($message !== '' ? ': ' . $message : '.');

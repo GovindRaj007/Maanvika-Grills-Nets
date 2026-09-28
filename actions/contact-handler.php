@@ -281,8 +281,9 @@ if ($message !== '') {
 // send test enquiries to the live inbox or divert live ones into a file.
 // ---------------------------------------------------------------------------
 
-$sent      = false;
-$sendError = '';
+$sent       = false;
+$sendError  = '';
+$sendDetail = ['transport' => '', 'status' => 0, 'message' => ''];
 
 if (SITE_ENV === 'development') {
     // Written outside the web root: it holds a customer's name and number.
@@ -299,36 +300,45 @@ if (SITE_ENV === 'development') {
         $sendError = 'Could not write the development copy to ' . $dump;
     }
 } else {
-    $sent = web3forms_send($fields, $sendError);
+    $sent = web3forms_send($fields, $sendError, $sendDetail);
 }
 // ---------------------------------------------------------------------------
 // 7. Result
 // ---------------------------------------------------------------------------
 
+// Record EVERY attempt, not only the failures.
+//
+// A success line matters as much as a failure one: if Web3Forms keeps replying
+// "accepted" and nothing reaches the inbox, the fault is at their end — almost
+// always a form whose email address has never been confirmed — and without a
+// log of the accepted sends there is no way to tell that apart from the site
+// never having sent anything.
+//
+// PHP wraps its own error text in HTML when html_errors is on, which turns any
+// quotes in a message into entities; strip that so the reason stays readable
+// whatever the host's settings are.
+$clean = static function ($text) {
+    return trim(preg_replace('/\s+/', ' ', strip_tags(html_entity_decode((string) $text, ENT_QUOTES, 'UTF-8'))));
+};
+
+@file_put_contents(
+    ROOT_DIR . '/data/delivery.log',
+    json_encode([
+        'at'        => date('c'),
+        'result'    => $sent ? 'accepted' : 'failed',
+        'name'      => $name,
+        'phone'     => $phone,
+        'saved'     => $logged ? 'yes' : 'NO',
+        'transport' => $sendDetail['transport'] ?? '',
+        'status'    => $sendDetail['status'] ?? 0,
+        'service'   => $clean($sendDetail['message'] ?? ''),
+        'reason'    => $sent ? '' : $clean($sendError !== '' ? $sendError : 'no reason given'),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL,
+    FILE_APPEND | LOCK_EX
+);
+
 if (!$sent) {
-    // Write the reason somewhere the site owner can actually read it. error_log
-    // goes wherever the host decides, which on shared hosting is often nowhere
-    // findable; this file is what form-check.php displays.
-    //
-    // PHP wraps its own error text in HTML when html_errors is on, which turns
-    // any quotes in the message into entities. Strip that back out so the reason
-    // reads properly whatever the host's settings are.
-    $reason = $sendError !== '' ? $sendError : 'the send failed without giving a reason';
-    $reason = trim(preg_replace('/\s+/', ' ', strip_tags(html_entity_decode($reason, ENT_QUOTES, 'UTF-8'))));
-
-    @file_put_contents(
-        ROOT_DIR . '/data/send-errors.log',
-        json_encode([
-            'at'     => date('c'),
-            'name'   => $name,
-            'phone'  => $phone,
-            'reason' => $reason,
-            'saved'  => $logged ? 'yes' : 'NO',
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL,
-        FILE_APPEND | LOCK_EX
-    );
-
-    error_log('Enquiry delivery failed for ' . $phone . ': ' . $reason);
+    error_log('Enquiry delivery failed for ' . $phone . ': ' . $clean($sendError));
 }
 
 // Two different failures, told apart deliberately.

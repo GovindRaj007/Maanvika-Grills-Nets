@@ -132,27 +132,71 @@ row('PHP version', PHP_VERSION, version_compare(PHP_VERSION, '8.0', '>=') ? 'goo
 ?>
 </table>
 
-<h2>2. Failed deliveries</h2>
+<h2>2. Delivery attempts</h2>
 <?php
-$errs = tail_log(ROOT_DIR . '/data/send-errors.log', 8);
+$attempts = tail_log(ROOT_DIR . '/data/delivery.log', 12);
 
-if ($errs === []) {
-    echo '<div class="note"><strong>None recorded.</strong> Either every enquiry has gone through, or '
-       . 'nothing has been submitted since these files were uploaded.</div>';
+// Older builds only logged failures; show those too rather than losing history.
+$legacy = tail_log(ROOT_DIR . '/data/send-errors.log', 6);
+
+if ($attempts === [] && $legacy === []) {
+    echo '<div class="note"><strong>Nothing recorded.</strong> No enquiry has reached the delivery step since '
+       . 'these files were uploaded. If you have submitted the form, check that <code>data/</code> is writable '
+       . 'in section 1 and that the old <code>mail-test.php</code> is gone.</div>';
 } else {
-    echo '<div class="note"><strong>' . count($errs) . ' failed delivery(ies).</strong> The reason is what '
-       . 'Web3Forms or the network actually reported. "saved: yes" means the enquiry itself is safe and '
-       . 'listed in section 3 — only the notification was lost.</div><table>';
-    foreach ($errs as $line) {
+    $accepted = 0;
+    $failed   = 0;
+    foreach ($attempts as $line) {
+        $r = json_decode($line, true);
+        if (!is_array($r)) { continue; }
+        ($r['result'] ?? '') === 'accepted' ? $accepted++ : $failed++;
+    }
+
+    echo '<table>';
+    foreach ($attempts as $line) {
+        $r = json_decode($line, true);
+        if (!is_array($r)) { continue; }
+        $ok = ($r['result'] ?? '') === 'accepted';
+        row(date('d M, g:i A', strtotime($r['at'] ?? 'now')),
+            ($ok ? 'ACCEPTED by Web3Forms' : 'FAILED')
+            . "\nLead: " . ($r['name'] ?? '?') . ' — ' . ($r['phone'] ?? '?')
+            . "\nSaved on server: " . ($r['saved'] ?? '?')
+            . "\nSent via: " . (($r['transport'] ?? '') !== '' ? $r['transport'] : 'n/a')
+            . ' · HTTP ' . ($r['status'] ?? 0)
+            . (($r['service'] ?? '') !== '' ? "\nWeb3Forms said: " . $r['service'] : '')
+            . (($r['reason'] ?? '') !== '' ? "\nReason: " . $r['reason'] : ''),
+            $ok ? 'good' : 'bad');
+    }
+    foreach ($legacy as $line) {
         $r = json_decode($line, true);
         if (!is_array($r)) { continue; }
         row(date('d M, g:i A', strtotime($r['at'] ?? 'now')),
-            'Lead: ' . ($r['name'] ?? '?') . ' — ' . ($r['phone'] ?? '?')
-            . "\nSaved on server: " . ($r['saved'] ?? '?')
-            . "\nReason: " . ($r['reason'] ?? 'not recorded'),
-            ($r['saved'] ?? '') === 'yes' ? 'warn' : 'bad');
+            "FAILED (older log)\nLead: " . ($r['name'] ?? '?') . ' — ' . ($r['phone'] ?? '?')
+            . "\nReason: " . ($r['reason'] ?? 'not recorded'), 'bad');
     }
     echo '</table>';
+
+    if ($accepted > 0 && $failed === 0) {
+        echo '<div class="note"><strong>Web3Forms accepted every submission.</strong> That means this website '
+           . 'has done its part in full &mdash; the enquiry left the server and Web3Forms took charge of it. '
+           . 'If nothing is arriving in the inbox, the cause is in the Web3Forms account, and there is one '
+           . 'overwhelmingly likely reason:'
+           . '<ol><li><strong>The form\'s email address has never been confirmed.</strong> When a form is '
+           . 'created, Web3Forms emails that address a verification link, and until it is clicked they accept '
+           . 'submissions and deliver nothing &mdash; exactly what you are seeing. Sign in at web3forms.com, '
+           . 'open this form, and check whether it says the address is verified. Look in the spam folder of '
+           . '<code>' . e(RECIPIENT_INBOX) . '</code> for their original verification email, or use the '
+           . 'dashboard to resend it.</li>'
+           . '<li>The address on the form is a different one from <code>' . e(RECIPIENT_INBOX) . '</code>. '
+           . 'The destination is set there, not in this site\'s code &mdash; check what it actually says.</li>'
+           . '<li>Their email is landing in spam. Search Gmail for <code>web3forms</code>, including '
+           . 'Spam and All Mail.</li></ol>'
+           . 'Nothing in this codebase can affect any of those, and no code change will fix them.</div>';
+    } elseif ($failed > 0) {
+        echo '<div class="note"><strong>Some submissions never left the server.</strong> The reason above is '
+           . 'what the network or Web3Forms actually reported. "Saved on server: yes" means the enquiry itself '
+           . 'is safe and listed in section 3, so no lead has been lost.</div>';
+    }
 }
 ?>
 
@@ -204,10 +248,17 @@ if ($leads === []) {
     <?php if (!$sent) { row('Reason', $err, 'bad'); } ?>
   </table>
   <?php if ($sent): ?>
-    <div class="note"><strong>Web3Forms confirmed it accepted the message.</strong> Unlike PHP mail(), that is
-    a real confirmation rather than a queue receipt. Now submit the form itself once, then delete this file.
-    <br><br>If it is accepted here but never arrives, the address on the Web3Forms dashboard needs checking —
-    a new form must have its email verified before anything is delivered.</div>
+    <div class="note"><strong>Web3Forms accepted the message.</strong> Be precise about what that proves: the
+    request left this server, the access key is valid, and Web3Forms has taken charge of the message. It does
+    <em>not</em> prove the email was delivered.
+    <br><br><strong>If this is accepted but nothing arrives, the problem is in the Web3Forms account.</strong>
+    Almost always the form's email address has never been confirmed &mdash; until the verification link is
+    clicked they accept submissions and send nothing. Sign in at web3forms.com, open this form, and check that
+    <code><?php echo e(RECIPIENT_INBOX); ?></code> is listed and verified. Their verification email is often
+    in the spam folder.</div>
+  <?php else: ?>
+    <div class="note">The request did not reach Web3Forms, so the reason above is a network or configuration
+    problem on this server, not anything to do with the inbox. Check the outbound HTTPS method in section 1.</div>
   <?php endif; ?>
 <?php endif; ?>
 
